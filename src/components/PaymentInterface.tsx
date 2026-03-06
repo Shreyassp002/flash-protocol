@@ -122,17 +122,13 @@ export default function PaymentInterface({ link, onSuccess }: PaymentInterfacePr
       } catch (err) {
         console.warn('Dynamic USDC resolution failed, using fallback:', err)
       }
-      // Fallback to static map
-      const numericId = Number(toChainKey)
-      setResolvedUSDCAddress(!isNaN(numericId) ? getUSDCAddress(numericId) : undefined)
+      // Fallback to static map (try numeric key first, then string key)
+      setResolvedUSDCAddress(getUSDCAddress(toChainKey))
     }
     resolveUSDC()
   }, [toChainKey, link.receive_token])
 
-  const destinationToken = link.receive_token || resolvedUSDCAddress || (() => {
-    const numericId = Number(toChainKey)
-    return !isNaN(numericId) ? getUSDCAddress(numericId) : undefined
-  })()
+  const destinationToken = link.receive_token || resolvedUSDCAddress || getUSDCAddress(toChainKey)
 
   // Fetch chains on mount
   useEffect(() => {
@@ -359,7 +355,7 @@ export default function PaymentInterface({ link, onSuccess }: PaymentInterfacePr
         body: JSON.stringify({
           paymentLinkId: link.id,
           walletAddress: address,
-          fromChainId,
+          fromChainId: fromChainKey,
           toChainId: toChainKey,
           fromToken: fromTokenAddress,
           toToken: destinationToken,
