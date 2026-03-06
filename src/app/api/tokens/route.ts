@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
 import { ChainTokenService } from '@/services/chain-token-service'
+import { TOKENS } from '@/lib/tokens'
 
 /**
  * GET /api/tokens?chainKey=42161
@@ -33,6 +34,17 @@ export async function GET(request: Request) {
     if (!error && tokens && tokens.length > 0) {
       const STABLECOIN_SYMBOLS = new Set(['USDC', 'USDT', 'DAI', 'USDC.e', 'USDbC'])
 
+      // Build canonical address set from static TOKENS map
+      const canonicalAddresses = new Set<string>()
+      const numKey = Number(chainKey)
+      // TOKENS uses numeric keys for EVM chains and string keys for non-EVM
+      const staticTokens = (!isNaN(numKey) ? TOKENS[numKey] : null) || TOKENS[chainKey]
+      if (staticTokens) {
+        for (const t of staticTokens) {
+          canonicalAddresses.add(t.address.toLowerCase())
+        }
+      }
+
       const mapped = tokens.map((t: any) => ({
         address: t.address,
         symbol: t.symbol,
@@ -44,7 +56,33 @@ export async function GET(request: Request) {
         providerIds: t.provider_ids,
       }))
 
-      // Sort: native first, then stablecoins, then alphabetically
+      // Inject canonical tokens that are missing from cache
+      if (staticTokens) {
+        const cachedAddresses = new Set(mapped.map((t: any) => t.address.toLowerCase()))
+        for (const st of staticTokens) {
+          if (!cachedAddresses.has(st.address.toLowerCase())) {
+            mapped.push({
+              address: st.address,
+              symbol: st.symbol,
+              name: st.name,
+              decimals: st.decimals,
+              logoUrl: st.logoUrl,
+              isNative: st.isNative || false,
+              chainKey,
+              providerIds: null,
+            })
+          }
+        }
+      }
+
+      // Provider count: stored as _count in providerIds by mergeTokens(), or count object keys
+      const getProviderCount = (t: any) => {
+        if (!t.providerIds || typeof t.providerIds !== 'object') return 0
+        if (typeof t.providerIds._count === 'number') return t.providerIds._count
+        return Object.keys(t.providerIds).filter(k => k !== '_count').length
+      }
+
+      // Sort: native first, then canonical stablecoins, then multi-provider stablecoins, then alphabetically
       mapped.sort((a: any, b: any) => {
         if (a.isNative && !b.isNative) return -1
         if (!a.isNative && b.isNative) return 1
@@ -52,6 +90,16 @@ export async function GET(request: Request) {
         const bStable = STABLECOIN_SYMBOLS.has(b.symbol)
         if (aStable && !bStable) return -1
         if (!aStable && bStable) return 1
+        // Among stablecoins with the same symbol: canonical > provider count > alphabetical
+        if (aStable && bStable && a.symbol === b.symbol) {
+          const aCanonical = canonicalAddresses.has(a.address.toLowerCase())
+          const bCanonical = canonicalAddresses.has(b.address.toLowerCase())
+          if (aCanonical && !bCanonical) return -1
+          if (!aCanonical && bCanonical) return 1
+          const aCount = getProviderCount(a)
+          const bCount = getProviderCount(b)
+          if (aCount !== bCount) return bCount - aCount
+        }
         return a.symbol.localeCompare(b.symbol)
       })
 

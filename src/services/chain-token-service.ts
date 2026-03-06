@@ -273,6 +273,21 @@ const CHAIN_KEY_ALIASES: Record<string, string> = {
   'turbochain': 'turbochain',
 }
 
+/**
+ * Known chain types by canonical key.
+ * Prevents misclassification when a provider doesn't report type correctly.
+ */
+const CHAIN_KEY_TYPES: Record<string, ChainType> = {
+  solana: 'solana',
+  bitcoin: 'bitcoin',
+  near: 'near',
+  tron: 'tron',
+  sui: 'sui',
+  cosmos: 'cosmos',
+  osmosis: 'cosmos',
+  dogecoin: 'bitcoin',
+}
+
 function normalizeChainKey(key: string): string {
   return CHAIN_KEY_ALIASES[key] || key
 }
@@ -299,21 +314,27 @@ function mergeAllChains(
   ) {
     for (const entry of entries) {
       const normalizedKey = normalizeChainKey(entry.key)
+      const resolvedType = CHAIN_KEY_TYPES[normalizedKey] || entry.type
       let chain = chainMap.get(normalizedKey)
       if (!chain) {
-        // Non-EVM chains should not carry provider-specific numeric IDs as chainId
-        const isNonEvm = entry.type !== 'evm'
+        const isNonEvm = resolvedType !== 'evm'
         chain = {
           key: normalizedKey,
           chainId: isNonEvm ? null : entry.chainId,
           name: entry.name,
-          type: entry.type,
+          type: resolvedType,
           symbol: entry.symbol,
           logoUrl: entry.logoUrl,
           providers: emptyProviderSupport(),
           providerIds: {},
         }
         chainMap.set(normalizedKey, chain)
+      }
+
+      // Fix type if a more specific type is known (e.g. 'evm' → 'solana')
+      if (chain.type === 'evm' && resolvedType !== 'evm') {
+        chain.type = resolvedType
+        chain.chainId = null // non-EVM chains shouldn't have numeric chainId
       }
 
       // Mark provider support
@@ -618,10 +639,8 @@ function getSymbiosisTokens(chain: UnifiedChain): UnifiedToken[] {
  * Get static fallback tokens from tokens.ts
  */
 function getStaticTokens(chainKey: string): UnifiedToken[] {
-  const chainId = Number(chainKey)
-  if (isNaN(chainId)) return []
-
-  const staticTokens = TOKENS[chainId]
+  const num = Number(chainKey)
+  const staticTokens = (!isNaN(num) ? TOKENS[num] : null) || TOKENS[chainKey]
   if (!staticTokens) return []
 
   return staticTokens.map((t) => ({
@@ -636,37 +655,86 @@ function getStaticTokens(chainKey: string): UnifiedToken[] {
 }
 
 /**
- * Merge tokens from multiple sources, deduplicating by address
+ * Build a set of canonical token addresses from the static TOKENS map.
+ * These are known-good addresses (Circle USDC, official USDT, etc.)
  */
-function mergeTokens(tokenSets: UnifiedToken[][]): UnifiedToken[] {
+function buildCanonicalAddresses(chainKey: string): Set<string> {
+  const canonical = new Set<string>()
+  // TOKENS uses numeric keys for EVM chains and string keys for non-EVM
+  const num = Number(chainKey)
+  const staticTokens = (!isNaN(num) ? TOKENS[num] : null) || TOKENS[chainKey]
+  if (staticTokens) {
+    for (const t of staticTokens) {
+      canonical.add(t.address.toLowerCase())
+    }
+  }
+  return canonical
+}
+
+/**
+ * Merge tokens from multiple sources, deduplicating by address.
+ * Tracks provider count per token — real tokens appear across multiple providers,
+ * fake/spam tokens only appear in one. Canonical tokens from static map always win.
+ */
+function mergeTokens(tokenSets: UnifiedToken[][], chainKey?: string): UnifiedToken[] {
   const tokenMap = new Map<string, UnifiedToken>()
+  const providerCount = new Map<string, number>()
 
   for (const tokens of tokenSets) {
+    const seenInSet = new Set<string>()
     for (const token of tokens) {
       const key = token.address.toLowerCase()
       const existing = tokenMap.get(key)
       if (!existing) {
         tokenMap.set(key, token)
+        providerCount.set(key, 1)
       } else {
         // Enrich existing token
         if (!existing.logoUrl && token.logoUrl) existing.logoUrl = token.logoUrl
         if (!existing.name && token.name) existing.name = token.name
+        // Count this provider if we haven't seen this address in this set yet
+        if (!seenInSet.has(key)) {
+          providerCount.set(key, (providerCount.get(key) || 1) + 1)
+        }
       }
+      seenInSet.add(key)
+    }
+  }
+
+  // Persist provider count into providerIds._count so it survives DB caching
+  for (const [addr, count] of providerCount) {
+    const token = tokenMap.get(addr)
+    if (token && count > 1) {
+      if (!token.providerIds) token.providerIds = {}
+      ;(token.providerIds as Record<string, unknown>)._count = count
     }
   }
 
   const result = Array.from(tokenMap.values())
+  const canonical = chainKey ? buildCanonicalAddresses(chainKey) : new Set<string>()
 
-  // Sort: native first, then stablecoins, then alphabetically
+  // Sort: native first, then canonical stablecoins, then multi-provider stablecoins,
+  // then single-provider stablecoins, then alphabetically
+  const STABLECOIN_SYMBOLS = ['USDC', 'USDT', 'DAI', 'USDC.e', 'USDbC']
   result.sort((a, b) => {
     if (a.isNative && !b.isNative) return -1
     if (!a.isNative && b.isNative) return 1
 
-    const stablecoins = ['USDC', 'USDT', 'DAI', 'USDC.e', 'USDbC']
-    const aIsStable = stablecoins.includes(a.symbol)
-    const bIsStable = stablecoins.includes(b.symbol)
+    const aIsStable = STABLECOIN_SYMBOLS.includes(a.symbol)
+    const bIsStable = STABLECOIN_SYMBOLS.includes(b.symbol)
     if (aIsStable && !bIsStable) return -1
     if (!aIsStable && bIsStable) return 1
+
+    if (aIsStable && bIsStable && a.symbol === b.symbol) {
+      const aCanonical = canonical.has(a.address.toLowerCase())
+      const bCanonical = canonical.has(b.address.toLowerCase())
+      if (aCanonical && !bCanonical) return -1
+      if (!aCanonical && bCanonical) return 1
+      // More providers = more likely real
+      const aCount = providerCount.get(a.address.toLowerCase()) || 0
+      const bCount = providerCount.get(b.address.toLowerCase()) || 0
+      if (aCount !== bCount) return bCount - aCount
+    }
 
     return a.symbol.localeCompare(b.symbol)
   })
@@ -792,7 +860,7 @@ export const ChainTokenService = {
       .filter((r): r is PromiseFulfilledResult<UnifiedToken[]> => r.status === 'fulfilled')
       .map((r) => r.value)
 
-    const merged = mergeTokens(tokenSets)
+    const merged = mergeTokens(tokenSets, chainKey)
 
     console.log(`ChainTokenService: ${merged.length} tokens for ${chain.name}`)
 
