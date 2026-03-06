@@ -9,7 +9,7 @@ const quoteSchema = z.object({
   toTokenAddress: z.string(),
   fromAmount: z.string(),
   fromAddress: z.string().optional(),
-  toAddress: z.string().optional(), 
+  toAddress: z.string().optional(),
   fromTokenDecimals: z.number().optional(),
 })
 
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const params = quoteSchema.parse(body)
 
-    // Using QuoteAggregator to fetch from all providers
+    // Chain key normalization happens inside QuoteAggregator
     const result = await QuoteAggregator.getQuotes({
       fromChain: params.fromChainId,
       toChain: params.toChainId,
@@ -26,9 +26,9 @@ export async function POST(request: Request) {
       toToken: params.toTokenAddress,
       fromAmount: params.fromAmount,
       fromAddress: params.fromAddress || '',
-      toAddress: params.toAddress, 
+      toAddress: params.toAddress,
       slippage: 0.5, // Default 0.5%
-      fromTokenDecimals: params.fromTokenDecimals
+      fromTokenDecimals: params.fromTokenDecimals,
     })
 
     return NextResponse.json({ 

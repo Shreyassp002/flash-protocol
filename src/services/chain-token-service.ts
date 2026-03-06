@@ -88,10 +88,12 @@ async function fetchRangoChains(): Promise<ProviderChainEntry[]> {
       .filter((bc: { enabled?: boolean }) => bc.enabled !== false)
       .map((bc: { name: string; chainId?: string | null; type?: string; logo?: string; defaultDecimals?: number; displayName?: string; shortName?: string }) => {
         const chainId = bc.chainId ? parseInt(bc.chainId) : null
-        const key = chainId && !isNaN(chainId) ? String(chainId) : bc.name.toLowerCase()
+        // Negative or extremely large chainIds are non-EVM — use name as key
+        const isValidEvmChainId = chainId && !isNaN(chainId) && chainId > 0 && chainId < 1e15
+        const key = isValidEvmChainId ? String(chainId) : bc.name.toLowerCase()
         return {
           key,
-          chainId: chainId && !isNaN(chainId) ? chainId : null,
+          chainId: isValidEvmChainId ? chainId : null,
           name: bc.displayName || bc.name,
           type: normalizeChainType(bc.type || 'EVM'),
           symbol: bc.shortName || bc.name,
@@ -182,20 +184,36 @@ async function fetchNearChains(): Promise<ProviderChainEntry[]> {
 
     // Map NEAR blockchain names to chain keys
     const nearBlockchainToKey: Record<string, { key: string; chainId: number | null; type: ChainType; name: string; symbol: string }> = {
-      ethereum: { key: '1', chainId: 1, type: 'evm', name: 'Ethereum', symbol: 'ETH' },
-      arbitrum: { key: '42161', chainId: 42161, type: 'evm', name: 'Arbitrum One', symbol: 'ETH' },
+      eth: { key: '1', chainId: 1, type: 'evm', name: 'Ethereum', symbol: 'ETH' },
+      arb: { key: '42161', chainId: 42161, type: 'evm', name: 'Arbitrum One', symbol: 'ETH' },
       base: { key: '8453', chainId: 8453, type: 'evm', name: 'Base', symbol: 'ETH' },
-      optimism: { key: '10', chainId: 10, type: 'evm', name: 'Optimism', symbol: 'ETH' },
-      polygon: { key: '137', chainId: 137, type: 'evm', name: 'Polygon', symbol: 'MATIC' },
+      op: { key: '10', chainId: 10, type: 'evm', name: 'Optimism', symbol: 'ETH' },
+      pol: { key: '137', chainId: 137, type: 'evm', name: 'Polygon', symbol: 'POL' },
       bsc: { key: '56', chainId: 56, type: 'evm', name: 'BNB Smart Chain', symbol: 'BNB' },
-      avalanche: { key: '43114', chainId: 43114, type: 'evm', name: 'Avalanche', symbol: 'AVAX' },
+      avax: { key: '43114', chainId: 43114, type: 'evm', name: 'Avalanche', symbol: 'AVAX' },
       gnosis: { key: '100', chainId: 100, type: 'evm', name: 'Gnosis', symbol: 'xDAI' },
       near: { key: 'near', chainId: null, type: 'near', name: 'NEAR', symbol: 'NEAR' },
-      solana: { key: 'solana', chainId: null, type: 'solana', name: 'Solana', symbol: 'SOL' },
-      bitcoin: { key: 'bitcoin', chainId: null, type: 'bitcoin', name: 'Bitcoin', symbol: 'BTC' },
-      dogecoin: { key: 'dogecoin', chainId: null, type: 'bitcoin', name: 'Dogecoin', symbol: 'DOGE' },
-      turbochain: { key: 'turbochain', chainId: null, type: 'evm', name: 'Turbo Chain', symbol: 'ETH' },
-      aurora: { key: '1313161554', chainId: 1313161554, type: 'evm', name: 'Aurora', symbol: 'ETH' },
+      sol: { key: 'solana', chainId: null, type: 'solana', name: 'Solana', symbol: 'SOL' },
+      btc: { key: 'bitcoin', chainId: null, type: 'bitcoin', name: 'Bitcoin', symbol: 'BTC' },
+      doge: { key: 'dogecoin', chainId: null, type: 'bitcoin', name: 'Dogecoin', symbol: 'DOGE' },
+      bera: { key: '80094', chainId: 80094, type: 'evm', name: 'Berachain', symbol: 'BERA' },
+      tron: { key: 'tron', chainId: null, type: 'tron', name: 'Tron', symbol: 'TRX' },
+      sui: { key: 'sui', chainId: null, type: 'sui', name: 'Sui', symbol: 'SUI' },
+      bch: { key: 'bch', chainId: null, type: 'bitcoin', name: 'Bitcoin Cash', symbol: 'BCH' },
+      ltc: { key: 'ltc', chainId: null, type: 'bitcoin', name: 'Litecoin', symbol: 'LTC' },
+      ton: { key: 'ton', chainId: null, type: 'ton', name: 'TON', symbol: 'TON' },
+      starknet: { key: 'starknet', chainId: null, type: 'starknet', name: 'StarkNet', symbol: 'STRK' },
+      monad: { key: '143', chainId: 143, type: 'evm', name: 'Monad', symbol: 'MON' },
+      xlayer: { key: '196', chainId: 196, type: 'evm', name: 'X Layer', symbol: 'OKB' },
+      plasma: { key: '9745', chainId: 9745, type: 'evm', name: 'Plasma', symbol: 'ETH' },
+      xrp: { key: 'xrp', chainId: null, type: 'other', name: 'XRP Ledger', symbol: 'XRP' },
+      stellar: { key: 'stellar', chainId: null, type: 'other', name: 'Stellar', symbol: 'XLM' },
+      zec: { key: 'zec', chainId: null, type: 'bitcoin', name: 'Zcash', symbol: 'ZEC' },
+      dash: { key: 'dash', chainId: null, type: 'bitcoin', name: 'Dash', symbol: 'DASH' },
+      cardano: { key: 'cardano', chainId: null, type: 'other', name: 'Cardano', symbol: 'ADA' },
+      aptos: { key: 'aptos', chainId: null, type: 'aptos', name: 'Aptos', symbol: 'APT' },
+      aleo: { key: 'aleo', chainId: null, type: 'other', name: 'Aleo', symbol: 'ALEO' },
+      adi: { key: 'adi', chainId: null, type: 'other', name: 'ADI', symbol: 'ADI' },
     }
 
     const entries: ProviderChainEntry[] = []
@@ -212,12 +230,12 @@ async function fetchNearChains(): Promise<ProviderChainEntry[]> {
           providerId: blockchain, // NEAR Intents chain prefix
         })
       } else {
-        // Unknown blockchain — use the name as key
+        // Unknown blockchain — use the name as key, type as 'other' (not EVM)
         entries.push({
           key: blockchain,
           chainId: null,
           name: blockchain.charAt(0).toUpperCase() + blockchain.slice(1),
-          type: 'evm' as ChainType,
+          type: 'other' as ChainType,
           symbol: blockchain.toUpperCase(),
           logoUrl: undefined,
           providerId: blockchain,
@@ -257,14 +275,53 @@ const CHAIN_KEY_ALIASES: Record<string, string> = {
   '1151111081099710': 'solana',
   '3652501241': 'bitcoin',
   'solana': 'solana',
+  'sol': 'solana',
   'bitcoin': 'bitcoin',
+  'btc': 'bitcoin',
   'near': 'near',
   'tron': 'tron',
   'sui': 'sui',
   'cosmos': 'cosmos',
   'osmosis': 'osmosis',
   'dogecoin': 'dogecoin',
+  'doge': 'dogecoin',
   'turbochain': 'turbochain',
+  '-239': 'ton',
+  'ton': 'ton',
+  '23448594291968336': 'starknet',
+  'starknet': 'starknet',
+  '728126428': 'tron',
+  'aptos': 'aptos',
+  'cardano': 'cardano',
+  'stellar': 'stellar',
+  'xrp': 'xrp',
+}
+
+/**
+ * Known chain types by canonical key.
+ * Prevents misclassification when a provider doesn't report type correctly.
+ */
+const CHAIN_KEY_TYPES: Record<string, ChainType> = {
+  solana: 'solana',
+  bitcoin: 'bitcoin',
+  near: 'near',
+  tron: 'tron',
+  sui: 'sui',
+  cosmos: 'cosmos',
+  osmosis: 'cosmos',
+  dogecoin: 'bitcoin',
+  bch: 'bitcoin',
+  ltc: 'bitcoin',
+  dash: 'bitcoin',
+  zec: 'bitcoin',
+  ton: 'ton',
+  starknet: 'starknet',
+  aptos: 'aptos',
+  stellar: 'other',
+  xrp: 'other',
+  cardano: 'other',
+  aleo: 'other',
+  adi: 'other',
 }
 
 function normalizeChainKey(key: string): string {
@@ -293,19 +350,27 @@ function mergeAllChains(
   ) {
     for (const entry of entries) {
       const normalizedKey = normalizeChainKey(entry.key)
+      const resolvedType = CHAIN_KEY_TYPES[normalizedKey] || entry.type
       let chain = chainMap.get(normalizedKey)
       if (!chain) {
+        const isNonEvm = resolvedType !== 'evm'
         chain = {
           key: normalizedKey,
-          chainId: entry.chainId,
+          chainId: isNonEvm ? null : entry.chainId,
           name: entry.name,
-          type: entry.type,
+          type: resolvedType,
           symbol: entry.symbol,
           logoUrl: entry.logoUrl,
           providers: emptyProviderSupport(),
           providerIds: {},
         }
         chainMap.set(normalizedKey, chain)
+      }
+
+      // Fix type if a more specific type is known (e.g. 'evm' → 'solana')
+      if (chain.type === 'evm' && resolvedType !== 'evm') {
+        chain.type = resolvedType
+        chain.chainId = null // non-EVM chains shouldn't have numeric chainId
       }
 
       // Mark provider support
@@ -483,22 +548,38 @@ async function fetchRangoTokens(chain: UnifiedChain): Promise<UnifiedToken[]> {
  */
 let nearTokensCache: { tokens: unknown[]; expiry: number } | null = null
 
-// Reverse mapping: chain key → NEAR blockchain name
+// Reverse mapping: chain key → NEAR blockchain name (abbreviated)
 const KEY_TO_NEAR_BLOCKCHAIN: Record<string, string> = {
-  '1': 'ethereum',
-  '42161': 'arbitrum',
+  '1': 'eth',
+  '42161': 'arb',
   '8453': 'base',
-  '10': 'optimism',
-  '137': 'polygon',
+  '10': 'op',
+  '137': 'pol',
   '56': 'bsc',
-  '43114': 'avalanche',
+  '43114': 'avax',
   '100': 'gnosis',
-  '1313161554': 'aurora',
   'near': 'near',
-  'solana': 'solana',
-  'bitcoin': 'bitcoin',
-  'dogecoin': 'dogecoin',
-  'turbochain': 'turbochain',
+  'solana': 'sol',
+  'bitcoin': 'btc',
+  'dogecoin': 'doge',
+  '80094': 'bera',
+  'tron': 'tron',
+  'sui': 'sui',
+  'bch': 'bch',
+  'ltc': 'ltc',
+  'ton': 'ton',
+  'starknet': 'starknet',
+  '143': 'monad',
+  '196': 'xlayer',
+  '9745': 'plasma',
+  'xrp': 'xrp',
+  'stellar': 'stellar',
+  'zec': 'zec',
+  'dash': 'dash',
+  'cardano': 'cardano',
+  'aptos': 'aptos',
+  'aleo': 'aleo',
+  'adi': 'adi',
 }
 
 async function fetchNearTokens(chain: UnifiedChain): Promise<UnifiedToken[]> {
@@ -606,10 +687,8 @@ function getSymbiosisTokens(chain: UnifiedChain): UnifiedToken[] {
  * Get static fallback tokens from tokens.ts
  */
 function getStaticTokens(chainKey: string): UnifiedToken[] {
-  const chainId = Number(chainKey)
-  if (isNaN(chainId)) return []
-
-  const staticTokens = TOKENS[chainId]
+  const num = Number(chainKey)
+  const staticTokens = (!isNaN(num) ? TOKENS[num] : null) || TOKENS[chainKey]
   if (!staticTokens) return []
 
   return staticTokens.map((t) => ({
@@ -624,37 +703,86 @@ function getStaticTokens(chainKey: string): UnifiedToken[] {
 }
 
 /**
- * Merge tokens from multiple sources, deduplicating by address
+ * Build a set of canonical token addresses from the static TOKENS map.
+ * These are known-good addresses (Circle USDC, official USDT, etc.)
  */
-function mergeTokens(tokenSets: UnifiedToken[][]): UnifiedToken[] {
+function buildCanonicalAddresses(chainKey: string): Set<string> {
+  const canonical = new Set<string>()
+  // TOKENS uses numeric keys for EVM chains and string keys for non-EVM
+  const num = Number(chainKey)
+  const staticTokens = (!isNaN(num) ? TOKENS[num] : null) || TOKENS[chainKey]
+  if (staticTokens) {
+    for (const t of staticTokens) {
+      canonical.add(t.address.toLowerCase())
+    }
+  }
+  return canonical
+}
+
+/**
+ * Merge tokens from multiple sources, deduplicating by address.
+ * Tracks provider count per token — real tokens appear across multiple providers,
+ * fake/spam tokens only appear in one. Canonical tokens from static map always win.
+ */
+function mergeTokens(tokenSets: UnifiedToken[][], chainKey?: string): UnifiedToken[] {
   const tokenMap = new Map<string, UnifiedToken>()
+  const providerCount = new Map<string, number>()
 
   for (const tokens of tokenSets) {
+    const seenInSet = new Set<string>()
     for (const token of tokens) {
       const key = token.address.toLowerCase()
       const existing = tokenMap.get(key)
       if (!existing) {
         tokenMap.set(key, token)
+        providerCount.set(key, 1)
       } else {
         // Enrich existing token
         if (!existing.logoUrl && token.logoUrl) existing.logoUrl = token.logoUrl
         if (!existing.name && token.name) existing.name = token.name
+        // Count this provider if we haven't seen this address in this set yet
+        if (!seenInSet.has(key)) {
+          providerCount.set(key, (providerCount.get(key) || 1) + 1)
+        }
       }
+      seenInSet.add(key)
+    }
+  }
+
+  // Persist provider count into providerIds._count so it survives DB caching
+  for (const [addr, count] of providerCount) {
+    const token = tokenMap.get(addr)
+    if (token && count > 1) {
+      if (!token.providerIds) token.providerIds = {}
+      ;(token.providerIds as Record<string, unknown>)._count = count
     }
   }
 
   const result = Array.from(tokenMap.values())
+  const canonical = chainKey ? buildCanonicalAddresses(chainKey) : new Set<string>()
 
-  // Sort: native first, then stablecoins, then alphabetically
+  // Sort: native first, then canonical stablecoins, then multi-provider stablecoins,
+  // then single-provider stablecoins, then alphabetically
+  const STABLECOIN_SYMBOLS = ['USDC', 'USDT', 'DAI', 'USDC.e', 'USDbC']
   result.sort((a, b) => {
     if (a.isNative && !b.isNative) return -1
     if (!a.isNative && b.isNative) return 1
 
-    const stablecoins = ['USDC', 'USDT', 'DAI', 'USDC.e', 'USDbC']
-    const aIsStable = stablecoins.includes(a.symbol)
-    const bIsStable = stablecoins.includes(b.symbol)
+    const aIsStable = STABLECOIN_SYMBOLS.includes(a.symbol)
+    const bIsStable = STABLECOIN_SYMBOLS.includes(b.symbol)
     if (aIsStable && !bIsStable) return -1
     if (!aIsStable && bIsStable) return 1
+
+    if (aIsStable && bIsStable && a.symbol === b.symbol) {
+      const aCanonical = canonical.has(a.address.toLowerCase())
+      const bCanonical = canonical.has(b.address.toLowerCase())
+      if (aCanonical && !bCanonical) return -1
+      if (!aCanonical && bCanonical) return 1
+      // More providers = more likely real
+      const aCount = providerCount.get(a.address.toLowerCase()) || 0
+      const bCount = providerCount.get(b.address.toLowerCase()) || 0
+      if (aCount !== bCount) return bCount - aCount
+    }
 
     return a.symbol.localeCompare(b.symbol)
   })
@@ -780,7 +908,7 @@ export const ChainTokenService = {
       .filter((r): r is PromiseFulfilledResult<UnifiedToken[]> => r.status === 'fulfilled')
       .map((r) => r.value)
 
-    const merged = mergeTokens(tokenSets)
+    const merged = mergeTokens(tokenSets, chainKey)
 
     console.log(`ChainTokenService: ${merged.length} tokens for ${chain.name}`)
 

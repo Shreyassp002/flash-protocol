@@ -11,8 +11,12 @@ export class SymbiosisProvider implements IProvider {
 
   async getQuote(request: QuoteRequest): Promise<QuoteResponse[]> {
     try {
-      const fromChainId = typeof request.fromChain === 'number' ? request.fromChain : Number(request.fromChain)
-      const toChainId = typeof request.toChain === 'number' ? request.toChain : Number(request.toChain)
+      const resolveChainId = (chain: number | string): number => {
+        if (typeof chain === 'string' && chain.toLowerCase() === 'bitcoin') return SYMBIOSIS_BTC_CHAIN_ID
+        return typeof chain === 'number' ? chain : Number(chain)
+      }
+      const fromChainId = resolveChainId(request.fromChain)
+      const toChainId = resolveChainId(request.toChain)
       if (isNaN(fromChainId) || isNaN(toChainId)) return []
       
       const isFromSupported = SYMBIOSIS_CHAIN_IDS.includes(fromChainId) || fromChainId === SYMBIOSIS_BTC_CHAIN_ID

@@ -15,7 +15,7 @@ export type Database = {
           wallet_address: string
           email: string | null
           business_name: string | null
-          default_receive_chain: number | null
+          default_receive_chain: string | null
           default_receive_token: string | null
           branding_settings: Json | null
           total_links_created: number
@@ -35,7 +35,7 @@ export type Database = {
           wallet_address: string
           email?: string | null
           business_name?: string | null
-          default_receive_chain?: number | null
+          default_receive_chain?: string | null
           default_receive_token?: string | null
           branding_settings?: Json | null
           total_links_created?: number
@@ -55,7 +55,7 @@ export type Database = {
           wallet_address?: string
           email?: string | null
           business_name?: string | null
-          default_receive_chain?: number | null
+          default_receive_chain?: string | null
           default_receive_token?: string | null
           branding_settings?: Json | null
           total_links_created?: number
@@ -79,7 +79,7 @@ export type Database = {
           currency: string
           receive_token: string | null
           receive_token_symbol: string | null
-          receive_chain_id: number | null
+          receive_chain_id: string | null
           recipient_address: string | null
           title: string | null
           description: string | null
@@ -103,7 +103,7 @@ export type Database = {
           currency?: string
           receive_token?: string | null
           receive_token_symbol?: string | null
-          receive_chain_id?: number | null
+          receive_chain_id?: string | null
           recipient_address?: string | null
           title?: string | null
           description?: string | null
@@ -127,7 +127,7 @@ export type Database = {
           currency?: string
           receive_token?: string | null
           receive_token_symbol?: string | null
-          receive_chain_id?: number | null
+          receive_chain_id?: string | null
           recipient_address?: string | null
           title?: string | null
           description?: string | null
@@ -151,11 +151,11 @@ export type Database = {
           payment_link_id: string | null
           customer_wallet: string | null
           receiver_wallet: string | null
-          from_chain_id: number | null
+          from_chain_id: string | null
           from_token: string | null
           from_token_symbol: string | null
           from_amount: number | null
-          to_chain_id: number | null
+          to_chain_id: string | null
           to_token: string | null
           to_token_symbol: string | null
           to_amount: number | null
@@ -186,11 +186,11 @@ export type Database = {
           payment_link_id?: string | null
           customer_wallet?: string | null
           receiver_wallet?: string | null
-          from_chain_id?: number | null
+          from_chain_id?: string | null
           from_token?: string | null
           from_token_symbol?: string | null
           from_amount?: number | null
-          to_chain_id?: number | null
+          to_chain_id?: string | null
           to_token?: string | null
           to_token_symbol?: string | null
           to_amount?: number | null
@@ -221,11 +221,11 @@ export type Database = {
           payment_link_id?: string | null
           customer_wallet?: string | null
           receiver_wallet?: string | null
-          from_chain_id?: number | null
+          from_chain_id?: string | null
           from_token?: string | null
           from_token_symbol?: string | null
           from_amount?: number | null
-          to_chain_id?: number | null
+          to_chain_id?: string | null
           to_token?: string | null
           to_token_symbol?: string | null
           to_amount?: number | null
@@ -299,7 +299,7 @@ export type Database = {
       cached_chains: {
         Row: {
           key: string
-          chain_id: number | null
+          chain_id: string | null
           name: string
           type: string
           symbol: string
@@ -311,7 +311,7 @@ export type Database = {
         }
         Insert: {
           key: string
-          chain_id?: number | null
+          chain_id?: string | null
           name: string
           type: string
           symbol: string
@@ -323,7 +323,7 @@ export type Database = {
         }
         Update: {
           key?: string
-          chain_id?: number | null
+          chain_id?: string | null
           name?: string
           type?: string
           symbol?: string
@@ -377,10 +377,10 @@ export type Database = {
           id: string
           payment_link_id: string | null
           wallet_address: string | null
-          from_chain_id: number | null
+          from_chain_id: string | null
           from_token: string | null
           from_amount: number | null
-          to_chain_id: number | null
+          to_chain_id: string | null
           to_token: string | null
           providers_queried: string[] | null
           lifi_quote: Json | null
@@ -398,10 +398,10 @@ export type Database = {
           id: string
           payment_link_id?: string | null
           wallet_address?: string | null
-          from_chain_id?: number | null
+          from_chain_id?: string | null
           from_token?: string | null
           from_amount?: number | null
-          to_chain_id?: number | null
+          to_chain_id?: string | null
           to_token?: string | null
           providers_queried?: string[] | null
           lifi_quote?: Json | null
@@ -419,10 +419,10 @@ export type Database = {
           id: string
           payment_link_id?: string | null
           wallet_address?: string | null
-          from_chain_id?: number | null
+          from_chain_id?: string | null
           from_token?: string | null
           from_amount?: number | null
-          to_chain_id?: number | null
+          to_chain_id?: string | null
           to_token?: string | null
           providers_queried?: string[] | null
           lifi_quote?: Json | null
@@ -528,7 +528,7 @@ export type Database = {
           id: string
           date: string | null
           provider: string | null
-          chain_id: number | null
+          chain_id: string | null
           total_transactions: number
           successful_transactions: number
           failed_transactions: number
@@ -544,7 +544,7 @@ export type Database = {
           id: string
           date?: string | null
           provider?: string | null
-          chain_id?: number | null
+          chain_id?: string | null
           total_transactions?: number
           successful_transactions?: number
           failed_transactions?: number
@@ -560,7 +560,7 @@ export type Database = {
           id: string
           date?: string | null
           provider?: string | null
-          chain_id?: number | null
+          chain_id?: string | null
           total_transactions?: number
           successful_transactions?: number
           failed_transactions?: number
