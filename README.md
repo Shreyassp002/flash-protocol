@@ -132,6 +132,18 @@ curl -X POST https://flash-protocol.vercel.app/api/v1/payment-links \
   }'
 ```
 
+## Client Applications
+
+The Flash Protocol has native client implementations for multiple platforms:
+
+### Web
+- **[GitHub](https://github.com/HoomanBuilds/flash-protocol)** - Web application & API source code
+- **[Website](https://flash-protocol.vercel.app)** - Live deployment
+
+### Android
+- **[GitHub](https://github.com/HoomanBuilds/flash-protocol-android/)** - Native Android SDK & sample app
+- **App Store** - Coming soon (in development)
+
 ## Getting Started
 
 ### Prerequisites
