@@ -10,6 +10,7 @@ export const createPaymentLinkSchema = z.object({
   receive_chain_id: z.union([z.number(), z.string()]).optional(),
   recipient_address: z.string().min(1, 'Recipient address is required'),
   receive_mode: z.enum(['same_chain', 'specific_chain']),
+  use_stealth: z.boolean().optional(),
   config: z.object({
     theme: z.enum(['light', 'dark', 'system']),
     logoUrl: z.string().url().optional(),

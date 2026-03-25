@@ -26,6 +26,30 @@ export async function POST(req: NextRequest) {
     const data = validation.data
     const supabase = createServerClient()
 
+    // Server-side enforcement: when use_stealth is enabled on this link, force native token
+    if (data.use_stealth) {
+      // Verify merchant actually has stealth keys set up
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: merchantData } = await (supabase.from('merchants') as any)
+        .select('stealth_enabled')
+        .eq('id', merchant.id)
+        .single()
+
+      if (merchantData?.stealth_enabled) {
+        const NATIVE_SYMBOLS: Record<string, string> = {
+          '1': 'ETH', '10': 'ETH', '42161': 'ETH', '8453': 'ETH',
+          '137': 'MATIC', '56': 'BNB', '43114': 'AVAX', '100': 'xDAI',
+          '324': 'ETH', '534352': 'ETH', '59144': 'ETH',
+        }
+        const chainKey = String(data.receive_chain_id || '1')
+        data.receive_token = '0x0000000000000000000000000000000000000000'
+        data.receive_token_symbol = NATIVE_SYMBOLS[chainKey] || 'ETH'
+      } else {
+        // Merchant doesn't have stealth enabled, ignore the flag
+        data.use_stealth = false
+      }
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: link, error } = await (supabase.from('payment_links') as any)
       .insert({
@@ -39,6 +63,7 @@ export async function POST(req: NextRequest) {
         receive_chain_id: data.receive_chain_id,
         recipient_address: data.recipient_address,
         receive_mode: data.receive_mode,
+        use_stealth: data.use_stealth || false,
         customization: data.config,
         max_uses: data.max_uses,
         expires_at: data.expires_at,
