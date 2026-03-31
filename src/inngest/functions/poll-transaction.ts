@@ -8,6 +8,39 @@ import { cctpProvider } from '@/services/providers/cctp'
 import { IProvider, StatusRequest } from '@/types/provider'
 import { createServerClient } from '@/lib/supabase'
 
+async function emitWebhookEvent(
+  transactionId: string,
+  eventType: 'payment.completed' | 'payment.failed',
+) {
+  const supabase = createServerClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: tx } = await (supabase.from('transactions') as any)
+    .select('payment_link_id')
+    .eq('id', transactionId)
+    .single()
+
+  if (!tx?.payment_link_id) return
+
+  const { data: linkRes } = await supabase
+    .from('payment_links')
+    .select('merchant_id')
+    .eq('id', tx.payment_link_id)
+    .single()
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const link = linkRes as any
+  if (!link?.merchant_id) return
+
+  await inngest.send({
+    name: 'webhook/deliver',
+    data: {
+      merchantId: link.merchant_id,
+      eventType,
+      transactionId,
+    },
+  })
+}
+
 // Provider registry for dynamic lookup
 const providerRegistry: Record<string, IProvider> = {
   lifi: lifiProvider,
@@ -33,17 +66,23 @@ export const pollTransactionStatus = inngest.createFunction(
     // Stop polling after 2880 attempts (~24 hours at 30s intervals)
     if (attempt > 2880) {
       console.log(`[Poll] Transaction ${transactionId} reached max retries. Marking as failed.`)
-      
-      const supabase = createServerClient()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('transactions') as any)
-        .update({ 
-          status: 'failed',
-          updated_at: new Date().toISOString(),
-          error_message: 'Polling timeout: max retries reached',
-          failure_stage: 'bridge'
-        })
-        .eq('id', transactionId)
+
+      await step.run('update-db-timeout', async () => {
+        const supabase = createServerClient()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase.from('transactions') as any)
+          .update({
+            status: 'failed',
+            updated_at: new Date().toISOString(),
+            error_message: 'Polling timeout: max retries reached',
+            failure_stage: 'bridge',
+          })
+          .eq('id', transactionId)
+      })
+
+      await step.run('emit-webhook-timeout', () =>
+        emitWebhookEvent(transactionId, 'payment.failed'),
+      )
 
       return { success: false, reason: 'max_retries_reached' }
     }
@@ -65,14 +104,14 @@ export const pollTransactionStatus = inngest.createFunction(
     })
 
     // 2. Determine final status
-    const finalStatus = statusResult?.status === 'DONE' ? 'completed' 
-                      : statusResult?.status === 'FAILED' ? 'failed' 
+    const finalStatus = statusResult?.status === 'DONE' ? 'completed'
+                      : statusResult?.status === 'FAILED' ? 'failed'
                       : 'pending'
 
     // 3. Update Database
     await step.run('update-db', async () => {
       const supabase = createServerClient()
-      
+
       const updateData: any = {
         status: finalStatus,
         updated_at: new Date().toISOString(),
@@ -140,7 +179,17 @@ export const pollTransactionStatus = inngest.createFunction(
       })
     }
 
-    // 4. If still pending, schedule another check in 30 seconds
+    // 5. Emit webhook for completed or failed transactions
+    if (finalStatus === 'completed' || finalStatus === 'failed') {
+      await step.run('emit-webhook', () =>
+        emitWebhookEvent(
+          transactionId,
+          finalStatus === 'completed' ? 'payment.completed' : 'payment.failed',
+        ),
+      )
+    }
+
+    // 6. If still pending, schedule another check in 30 seconds
     if (finalStatus === 'pending') {
       await step.sleep('wait-before-retry', '30s')
       await inngest.send({
