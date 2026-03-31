@@ -257,30 +257,15 @@ export default function WebhookSettings() {
   // Loading state
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <Webhook className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-semibold">Webhooks</h3>
-        </div>
-        <div className="flex items-center justify-center p-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Webhook className="w-5 h-5 text-primary" />
-            Webhooks
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            Receive real-time notifications when payment events occur.
-          </p>
-        </div>
+      <div className="flex items-center justify-end">
         <Button variant="outline" size="sm" onClick={() => setAddDialogOpen(true)}>
           + ADD_ENDPOINT
         </Button>

@@ -181,14 +181,8 @@ export default function ApiKeySection({ merchantId: _merchantId }: { merchantId:
   // State A: Loading
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <Key className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-semibold">API Access</h3>
-        </div>
-        <div className="flex items-center justify-center p-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -197,16 +191,6 @@ export default function ApiKeySection({ merchantId: _merchantId }: { merchantId:
   if (!keyMetadata) {
     return (
       <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Key className="w-5 h-5 text-primary" />
-            API Access
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            Generate an API key for programmatic access to the Payment Gateway.
-          </p>
-        </div>
-
         <div className="p-4 border border-border rounded-lg bg-muted/50 space-y-4">
           <div className="space-y-2">
             <label
@@ -256,18 +240,6 @@ export default function ApiKeySection({ merchantId: _merchantId }: { merchantId:
   // State C: Active key exists
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Key className="w-5 h-5 text-primary" />
-            API Access
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage your programmatic access keys for the Payment Gateway.
-          </p>
-        </div>
-      </div>
-
       {/* C1: Just generated — show raw key */}
       {rawKey && (
         <Alert className="border-green-500/50 bg-green-500/10 text-green-600 dark:text-green-400">
