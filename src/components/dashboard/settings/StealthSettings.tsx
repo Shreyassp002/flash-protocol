@@ -127,14 +127,14 @@ export default function StealthSettings() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2">
           {isEnabled ? (
             <ShieldCheck className="w-5 h-5 text-green-500" />
           ) : (
             <Shield className="w-5 h-5 text-muted-foreground" />
           )}
-          <CardTitle>Privacy Mode</CardTitle>
-        </div>
+          Privacy Mode
+        </CardTitle>
         <CardDescription>
           Receive payments at unlinkable stealth addresses. Each payment gets a fresh address
           that cannot be traced back to your wallet on-chain.

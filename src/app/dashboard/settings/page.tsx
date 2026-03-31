@@ -5,6 +5,7 @@ import ApiKeySection from '@/components/dashboard/settings/ApiKeySection'
 import StealthSettings from '@/components/dashboard/settings/StealthSettings'
 import WebhookSettings from '@/components/dashboard/settings/WebhookSettings'
 import { Separator } from '@/components/ui/separator'
+import { Key, Webhook } from 'lucide-react'
 
 export default function SettingsPage() {
   return (
@@ -23,7 +24,10 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Developer Settings</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Key className="w-5 h-5" />
+              Developer Settings
+            </CardTitle>
             <CardDescription>
               Configure API keys to integrate payment links programmatically.
             </CardDescription>
@@ -35,7 +39,10 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Webhooks</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Webhook className="w-5 h-5" />
+              Webhooks
+            </CardTitle>
             <CardDescription>
               Receive real-time notifications when payment events occur.
             </CardDescription>
