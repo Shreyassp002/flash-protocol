@@ -12,9 +12,8 @@ export function MobileDocsNav() {
   const pathname = usePathname()
 
   // Close menu when route changes
-  useEffect(() => {
-    setOpen(false)
-  }, [pathname])
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: close menu on navigation
+  useEffect(() => { setOpen(false) }, [pathname])
 
   // Lock body scroll when menu is open
   useEffect(() => {

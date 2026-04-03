@@ -69,7 +69,7 @@ export function generateStealthAddress({
   const viewingKeyNode = deserializeHDKey(viewingKeyNodeSerialized)
 
   // Generate ephemeral key from viewing node + nonce
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const { ephemeralPrivateKey } = generateEphemeralPrivateKey({
     viewingPrivateKeyNode: viewingKeyNode as any,
     nonce: BigInt(nonce),
@@ -186,7 +186,7 @@ function deserializeHDKey(serialized: string): any {
   const data = JSON.parse(serialized)
 
   // Reconstruct using @scure/bip32 HDKey directly
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { HDKey } = require('@scure/bip32')
 
   const hasPrivateKey = !!data.privateKey

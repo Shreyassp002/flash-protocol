@@ -12,7 +12,7 @@ const initiateSchema = z.object({
   fromAmount: z.string(),
   toAmount: z.string(),
   provider: z.string().default('lifi'),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   route: z.any(),
   toAddress: z.string().optional(), // receiver wallet for P2P direct hits (android)
 })

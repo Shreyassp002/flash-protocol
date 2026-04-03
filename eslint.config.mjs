@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
           destructuredArrayIgnorePattern: "^_",
         },
       ],
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/ban-ts-comment": "warn",
     },
   },
   // Override default ignores of eslint-config-next.
@@ -25,8 +27,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Non-Next.js files
+    // Non-source directories
     "scripts/**",
+    "documentation/**",
+    "inspiration/**",
   ]),
 ]);
 
