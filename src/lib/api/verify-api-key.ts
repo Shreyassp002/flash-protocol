@@ -17,21 +17,25 @@ export async function verifyApiKey(req: NextRequest) {
     return { error: 'Invalid API key format', status: 401 }
   }
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createServerClient() as any
   
-  // Get all merchants with API enabled
+  const prefix = apiKey.substring(0, 16)
+
+  // Get merchants with matching prefix and API enabled
   const { data: merchants } = await supabase
     .from('merchants')
     .select('id, wallet_address, api_key_hash, api_enabled, api_total_calls')
     .eq('api_enabled', true)
+    .eq('api_key_prefix', prefix)
     
   if (!merchants || merchants.length === 0) {
     return { error: 'Invalid API key', status: 401 }
   }
   
   // Check if key matches any merchant
+  // (Iterating to handle the extremely unlikely edge case of prefix collision)
   for (const merchant of merchants) {
-    // Note: This iterates through all enabled merchants which is O(N) but acceptable for MVP
     const isValid = await bcrypt.compare(apiKey, merchant.api_key_hash)
     
     if (isValid) {
@@ -55,6 +59,7 @@ export async function verifyApiKey(req: NextRequest) {
         status_code: 200, // Assumed success if we get here
         ip_address: req.headers.get('x-forwarded-for') || 'unknown',
         user_agent: req.headers.get('user-agent') || 'unknown'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }).then(({ error }: any) => {
         if (error) console.error('Failed to log API request:', error)
       })

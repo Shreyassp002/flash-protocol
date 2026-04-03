@@ -11,7 +11,6 @@ import {
   ArrowLeft, 
   Loader2,
   CheckCircle,
-  XCircle,
   Clock,
   ExternalLink,
   QrCode
@@ -98,6 +97,7 @@ function LinksPageContent() {
     if (!linkId) {
       fetchLinks()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkId])
 
   // Fetch Link Details if ID is present
@@ -107,6 +107,7 @@ function LinksPageContent() {
     } else {
       setSelectedLink(null)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkId])
 
   async function fetchLinks() {

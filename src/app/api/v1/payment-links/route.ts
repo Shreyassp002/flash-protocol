@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   let body
   try {
     body = await req.json()
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: 'Invalid JSON request body' }, { status: 400 })
   }
 
@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
   
   const data = validation.data
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createServerClient() as any
   
   // 3. Get merchant defaults
@@ -118,6 +119,7 @@ export async function POST(req: NextRequest) {
     status_code: 201,
     request_body: body,
     ip_address: clientIp.split(',')[0]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }).then(({ error }: any) => {
     if(error) console.error('Failed to log API call', error)
   })
@@ -145,6 +147,7 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 100)
     const offset = parseInt(searchParams.get('offset') || '0')
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const supabase = createServerClient() as any
     
     const { data: links, count, error: dbError } = await supabase

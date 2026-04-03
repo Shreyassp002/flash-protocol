@@ -54,6 +54,7 @@ export async function GET(request: Request) {
 
     // Build query — fetch all, then filter after normalization
     // (type filter can't be applied at DB level because stale rows have wrong types)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let query = supabase.from('cached_chains' as any).select('*')
 
     if (hasUSDC) {
@@ -61,11 +62,13 @@ export async function GET(request: Request) {
     }
 
     const { data, error } = await query.order('name')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const chains = data as any[] | null
 
     // If cache has data, return it
     if (!error && chains && chains.length > 0) {
       // Map DB rows back to UnifiedChain shape, normalizing stale keys/types
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const chainMap = new Map<string, any>()
 
       for (const c of chains) {

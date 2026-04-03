@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status')
     const paymentLinkId = searchParams.get('payment_link_id')
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const supabase = createServerClient() as any
     
     // Build query
@@ -38,7 +39,9 @@ export async function GET(req: NextRequest) {
     }
 
     // Format for API response
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formatted = transactions?.map((tx: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { payment_links, ...rest } = tx;
         return rest;
     });

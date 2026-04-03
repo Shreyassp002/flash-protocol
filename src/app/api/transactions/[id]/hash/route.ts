@@ -43,8 +43,10 @@ export async function PATCH(
     }
 
     const tx = data as TransactionRecord
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const metadata = (tx.route_details as any)?.metadata
     const depositAddress = metadata?.depositAddress
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const bridge = (tx.route_details as any)?.routes?.[0]?.tool || tx.provider
 
     // 2. Now trigger Inngest polling with the actual tx hash
