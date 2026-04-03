@@ -207,7 +207,7 @@ export function useTransactionExecutor() {
       if (swapResponse.error) throw new Error(swapResponse.error)
       
       const requestId = swapResponse.requestId
-      let tx = swapResponse.tx
+      const tx = swapResponse.tx
       
       if (!tx) throw new Error('Failed to get transaction data from Rango')
 
@@ -356,9 +356,8 @@ export function useTransactionExecutor() {
         throw new Error('Solana wallet does not support signAndSendTransaction')
       }
 
-      let txHash: string
       const result = await solana.signAndSendTransaction(transaction)
-      txHash = typeof result === 'string' ? result : result?.signature || result?.toString()
+      const txHash = typeof result === 'string' ? result : result?.signature || result?.toString()
 
       setTxHash(txHash)
       setStatus('completed')

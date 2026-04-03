@@ -140,8 +140,8 @@ export async function GET(req: NextRequest) {
   // Fetch delivery stats for all endpoints in one query
   const endpointIds = (endpoints || []).map((ep: { id: string }) => ep.id)
 
-  let totalsByEndpoint: Record<string, number> = {}
-  let successByEndpoint: Record<string, number> = {}
+  const totalsByEndpoint: Record<string, number> = {}
+  const successByEndpoint: Record<string, number> = {}
 
   if (endpointIds.length > 0) {
     const { data: allDeliveries } = await supabase

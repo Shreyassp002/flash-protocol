@@ -15,7 +15,7 @@ export default function DocsRedirectsPage() {
           and after 3 seconds, they will be automatically redirected to your URL.
         </p>
         <p>
-            This allows you to verify the payment status and show a "Thank You" page on your own domain.
+            This allows you to verify the payment status and show a &ldquo;Thank You&rdquo; page on your own domain.
         </p>
       </DocSection>
 

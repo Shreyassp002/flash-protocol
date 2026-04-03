@@ -100,9 +100,8 @@ export default function Home() {
   const { isConnected } = useAppKitAccount()
   const [mounted, setMounted] = useState(false)
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- standard hydration guard
+  useEffect(() => { setMounted(true) }, [])
 
   // Only trust wallet state after hydration to prevent SSR mismatch
   const walletReady = mounted && isConnected
