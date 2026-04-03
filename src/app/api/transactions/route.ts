@@ -43,7 +43,9 @@ export async function GET(req: NextRequest) {
     }
 
     // Clean response — remove the joined payment_links data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cleaned = transactions?.map((tx: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { payment_links, ...rest } = tx
       return rest
     }) || []

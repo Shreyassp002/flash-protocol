@@ -17,6 +17,7 @@ export async function verifyApiKey(req: NextRequest) {
     return { error: 'Invalid API key format', status: 401 }
   }
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createServerClient() as any
   
   const prefix = apiKey.substring(0, 16)
@@ -58,6 +59,7 @@ export async function verifyApiKey(req: NextRequest) {
         status_code: 200, // Assumed success if we get here
         ip_address: req.headers.get('x-forwarded-for') || 'unknown',
         user_agent: req.headers.get('user-agent') || 'unknown'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }).then(({ error }: any) => {
         if (error) console.error('Failed to log API request:', error)
       })

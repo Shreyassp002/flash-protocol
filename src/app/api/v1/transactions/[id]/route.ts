@@ -13,6 +13,7 @@ export async function GET(
   }
   
   const { id } = await params
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createServerClient() as any
   
   // Fetch transaction with link verification
@@ -30,12 +31,14 @@ export async function GET(
   }
   
   // Verify ownership via payment link
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const txData = transaction as any
   if (txData.payment_links?.merchant_id !== merchant.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
   // Clean response
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { payment_links, ...cleanedTx } = txData
   
   return NextResponse.json(cleanedTx)

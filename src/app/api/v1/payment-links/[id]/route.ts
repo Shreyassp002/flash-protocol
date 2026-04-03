@@ -13,6 +13,7 @@ export async function GET(
   }
   
   const { id } = await params
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createServerClient() as any
   
   // Fetch payment link
@@ -71,6 +72,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
   }
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createServerClient() as any
   
   const { data: link, error: updateError } = await supabase

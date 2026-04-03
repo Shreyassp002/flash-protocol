@@ -33,13 +33,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch claims' }, { status: 500 })
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const unclaimed = claims?.filter((c: any) => !c.claimed && c.amount_received > 0) || []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const claimed = claims?.filter((c: any) => c.claimed) || []
 
     return NextResponse.json({
       unclaimed,
       claimed,
       total_unclaimed: unclaimed.length,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       total_claimable: unclaimed.reduce((sum: number, c: any) => sum + (c.amount_received || 0), 0),
     })
   } catch (error) {

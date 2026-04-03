@@ -2,20 +2,17 @@
 
 import { useEffect, useState, use } from 'react'
 import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { 
   ArrowLeft, 
   Loader2, 
   ExternalLink, 
   Copy, 
-  CheckCircle, 
-  XCircle, 
-  Clock,
   Share2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
@@ -37,6 +34,7 @@ interface TransactionDetails {
   completed_at?: string
   platform_fee?: number
   actual_output?: number
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: any
 }
 
@@ -50,6 +48,7 @@ export default function TransactionDetailsPage({ params }: { params: Promise<{ i
 
   useEffect(() => {
     fetchTransactionDetails()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolvedParams.id])
 
   async function fetchTransactionDetails() {
