@@ -20,7 +20,7 @@ const { buildFileReviewPrompt, buildSummaryPrompt } = require('./prompt')
 // ─── Configuration ─────────────────────────────────────────────────
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
-const MODEL = 'gemini-2.0-flash'
+const MODEL = 'gemini-2.5-flash'
 const MAX_DIFF_PER_FILE = 15000        // chars per file diff
 const MAX_FILES_TO_REVIEW = 15         // max files per run
 const CONCURRENCY = 3                  // parallel Gemini calls
