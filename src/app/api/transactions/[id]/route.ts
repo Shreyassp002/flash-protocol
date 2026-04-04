@@ -41,8 +41,7 @@ export async function GET(
     }
 
     // Clean response
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { payment_links, ...cleaned } = transaction
+    const { payment_links: _payment_links, ...cleaned } = transaction
     return NextResponse.json(cleaned)
   } catch (error) {
     console.error('Transaction Detail Error:', error)
