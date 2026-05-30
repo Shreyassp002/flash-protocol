@@ -14,6 +14,7 @@ import { QuoteResponse } from '@/types/provider'
 import { useTransactionExecutor } from '@/hooks/useTransactionExecutor'
 import { useToast } from '@/components/ui/use-toast'
 import type { UnifiedChain, UnifiedToken } from '@/lib/chain-registry'
+import { collapseTokensBySymbol } from '@/lib/token-filter'
 
 // Chain type group labels for the dropdown
 const CHAIN_TYPE_LABELS: Record<string, string> = {
@@ -104,6 +105,11 @@ export default function PaymentInterface({ link, onSuccess }: PaymentInterfacePr
   const displayAmountUSD = isFixedAmount ? link.amount! : parseFloat(manualAmount) || 0
 
   const fromToken = dynamicTokens.find(t => t.address.toLowerCase() === fromTokenAddress.toLowerCase())
+
+  // Defensive client-side collapse: one canonical row per symbol so the dropdown
+  // never shows duplicate USDC/SOL even if an unmerged cache row slips through.
+  // Selection still resolves against the full dynamicTokens list above.
+  const displayTokens = collapseTokensBySymbol(dynamicTokens, fromChainKey)
 
   // Dynamic USDC address resolution for destination chain
   const [resolvedUSDCAddress, setResolvedUSDCAddress] = useState<string | undefined>(undefined)
@@ -603,7 +609,7 @@ export default function PaymentInterface({ link, onSuccess }: PaymentInterfacePr
                     value={fromTokenAddress}
                     onChange={(e) => handleTokenChange(e.target.value)}
                   >
-                    {dynamicTokens.map(t => (
+                    {displayTokens.map(t => (
                       <option key={t.address} value={t.address}>
                         {t.symbol}{t.name && t.name !== t.symbol ? ` — ${t.name}` : ''}
                       </option>
