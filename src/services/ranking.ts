@@ -76,7 +76,13 @@ export function onTopCostUSD(quote: QuoteResponse): number {
 export function netOutput(quote: QuoteResponse, decimals: number): number {
   const raw = Number(quote.toAmount || '0')
   const human = raw / Math.pow(10, decimals)
-  return human - onTopCostUSD(quote)
+  const onTopUSD = onTopCostUSD(quote)
+  // Convert on-top USD fees into destination-token units when the token's USD
+  // price is known (a $20 fee on a $2000 token costs 0.01 token, not 20). Falls
+  // back to USD ≈ token units, correct for the common ~$1 stablecoin destination.
+  const price = quote.toTokenPriceUSD
+  const onTopInTokenUnits = typeof price === 'number' && price > 0 ? onTopUSD / price : onTopUSD
+  return human - onTopInTokenUnits
 }
 
 /** Tie-breaker when net outputs are within epsilon. Higher = better. */
