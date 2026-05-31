@@ -30,3 +30,18 @@ export function resolveExecutionPath(quote: QuoteResponse): ExecutionPath {
 
   return 'evm'
 }
+
+/**
+ * True when a quote bridges across two different chains. For atomic providers
+ * (Symbiosis/Rubic) broadcasting the source tx does NOT mean the swap finished:
+ * a cross-chain bridge settles on the destination minutes later. Callers must
+ * not claim 'completed' on broadcast for these — the server-side poller is the
+ * real source of truth. Same-chain swaps DO complete on broadcast.
+ */
+export function isCrossChainSwap(quote: QuoteResponse): boolean {
+  const route = quote.routes?.[0]?.action
+  const from = route?.fromToken?.chainId
+  const to = route?.toToken?.chainId
+  if (from === undefined || to === undefined) return false
+  return String(from) !== String(to)
+}

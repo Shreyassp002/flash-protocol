@@ -1,6 +1,31 @@
 import { describe, it, expect } from 'vitest'
-import { resolveExecutionPath } from '../execution-path'
+import { resolveExecutionPath, isCrossChainSwap } from '../execution-path'
 import type { QuoteResponse } from '@/types/provider'
+
+function quoteFromTo(fromChainId: number | string, toChainId: number | string): QuoteResponse {
+  return {
+    provider: 'symbiosis',
+    id: 'q1',
+    fromAmount: '1000',
+    toAmount: '1000',
+    toAmountMin: '1000',
+    estimatedGas: '0',
+    estimatedDuration: 60,
+    routes: [
+      {
+        type: 'bridge',
+        tool: 't',
+        action: {
+          fromToken: { address: '0xabc', chainId: fromChainId, symbol: 'X', decimals: 18 },
+          toToken: { address: '0xdef', chainId: toChainId, symbol: 'Y', decimals: 6 },
+          fromAmount: '1000',
+          toAmount: '1000',
+        },
+        estimate: {},
+      },
+    ],
+  } as QuoteResponse
+}
 
 function makeQuote(overrides: Partial<QuoteResponse>): QuoteResponse {
   return {
@@ -128,5 +153,22 @@ describe('resolveExecutionPath', () => {
       metadata: { chainType: 'solana', isDepositTrade: true },
     })
     expect(resolveExecutionPath(quote)).toBe('solana')
+  })
+})
+
+describe('isCrossChainSwap', () => {
+  it('true when source and destination chains differ (Arb -> Base)', () => {
+    expect(isCrossChainSwap(quoteFromTo(42161, 8453))).toBe(true)
+  })
+  it('false for a same-chain swap (Arb -> Arb)', () => {
+    expect(isCrossChainSwap(quoteFromTo(42161, 42161))).toBe(false)
+  })
+  it('treats numeric and numeric-string chain ids as equal (no false cross-chain)', () => {
+    expect(isCrossChainSwap(quoteFromTo(42161, '42161'))).toBe(false)
+  })
+  it('false when route chain ids are missing (cannot prove cross-chain)', () => {
+    const q = quoteFromTo(1, 1)
+    q.routes = []
+    expect(isCrossChainSwap(q)).toBe(false)
   })
 })
