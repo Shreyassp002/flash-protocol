@@ -82,21 +82,24 @@ export interface QuoteResponse {
   }
   toolsUsed?: string[] 
   metadata?: {
-    chainType?: 'evm' | 'solana' | 'bitcoin'
+    chainType?: 'evm' | 'solana' | 'bitcoin' | 'other'
     isDepositTrade?: boolean
     depositAddress?: string
+    depositMemo?: string
     amountToSend?: string
     [key: string]: unknown
-  }  
+  }
 }
 
 export interface StatusRequest {
   txHash: string
   fromChainId: ChainId
   toChainId: ChainId
-  bridge?: string 
-  requestId?: string 
+  bridge?: string
+  requestId?: string
   depositAddress?: string
+  /** Memo/tag for deposit chains that require it (NEAR Intents status lookup). */
+  depositMemo?: string
 }
 
 export type TransactionStatus = 'PENDING' | 'DONE' | 'FAILED' | 'NOT_FOUND'

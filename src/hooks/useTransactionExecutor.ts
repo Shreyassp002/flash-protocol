@@ -164,7 +164,7 @@ export function useTransactionExecutor() {
         await OneClickService.submitDepositTx({
             txHash: hash,
             depositAddress,
-            memo: quote.metadata?.depositMemo,
+            memo: quote.metadata?.depositMemo as string | undefined,
         })
       } catch (e) {
         console.warn('Failed to submit tx hash to Near Intents:', e)
@@ -410,7 +410,7 @@ export function useTransactionExecutor() {
 
       if (quote.provider === 'near-intents' && depositAddress) {
         try {
-          await OneClickService.submitDepositTx({ txHash, depositAddress, memo: quote.metadata?.depositMemo })
+          await OneClickService.submitDepositTx({ txHash, depositAddress, memo: quote.metadata?.depositMemo as string | undefined })
         } catch (e) {
           console.warn('Failed to submit Solana deposit hash:', e)
         }
@@ -460,7 +460,7 @@ export function useTransactionExecutor() {
 
       if (quote.provider === 'near-intents' && depositAddress) {
         try {
-          await OneClickService.submitDepositTx({ txHash, depositAddress, memo: quote.metadata?.depositMemo })
+          await OneClickService.submitDepositTx({ txHash, depositAddress, memo: quote.metadata?.depositMemo as string | undefined })
         } catch (e) {
           console.warn('Failed to submit BTC deposit hash:', e)
         }
