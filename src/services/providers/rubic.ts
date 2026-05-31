@@ -231,6 +231,19 @@ export class RubicProvider implements IProvider {
         }
       }
 
+      // Drop non-executable quotes: Rubic cannot be executed without tx data.
+      // EVM swaps need transactionRequest.to/data (from /routes/swap); deposit
+      // trades need a depositAddress (from /routes/swapDepositTrade). When the
+      // swap call fails (e.g. insufficient balance) these are absent, and the
+      // quote would be unexecutable yet could still poison ranking as "best".
+      const hasExecutableTx = isNonEvmSource
+        ? Boolean(transactionRequest?.depositAddress)
+        : Boolean(transactionRequest?.to && transactionRequest?.data)
+      if (!hasExecutableTx) {
+        console.log('Rubic: dropping quote with no executable transaction data')
+        return []
+      }
+
       // Calculate total fees
       const protocolFeeUSD = data.fees?.gasTokenFees?.protocol?.fixedUsdAmount || 0
       const providerFeeUSD = data.fees?.gasTokenFees?.provider?.fixedUsdAmount || 0
