@@ -1,6 +1,8 @@
 import { providers } from './providers'
 import { QuoteRequest, QuoteResponse, ChainId } from '@/types/provider'
 import { rankQuotes } from './ranking'
+import { validateQuoteRequest } from '@/lib/chain-address'
+import { ChainTokenService } from './chain-token-service'
 
 const PROVIDER_TIMEOUT_MS = 30000
 const QUOTE_VALIDITY_MS = 60000
@@ -31,11 +33,38 @@ export interface AggregatedQuoteResponse {
   bestQuote: QuoteResponse | null
   expiresAt: number
   fetchedAt: number
+  /** True when the request was rejected before fan-out (e.g. unsupported chain). */
+  unsupported?: boolean
+  /** Human-readable reason when the request can't be quoted (unsupported chain
+   *  or an address that doesn't match the chain's address space). */
+  reason?: string
   providerStats: {
     succeeded: string[]
     failed: string[]
     timedOut: string[]
     errors?: Record<string, string>
+  }
+}
+
+/**
+ * Best-effort resolve the source token's decimals when the caller omitted them.
+ * Rubic falls back to 18 (rubic.ts) which over/under-scales the input amount by
+ * 10^(realDecimals-18) → wildly wrong quotes. Resolving from the cached token
+ * list (ChainTokenService, 5-min cache) avoids that footgun. Returns undefined
+ * if it can't resolve, leaving providers on their own fallback.
+ */
+async function resolveFromTokenDecimals(
+  fromChain: ChainId,
+  fromToken: string
+): Promise<number | undefined> {
+  try {
+    const tokens = await ChainTokenService.getTokens(String(fromChain))
+    const target = fromToken.toLowerCase()
+    const match = tokens.find((t) => t.address.toLowerCase() === target)
+    return match?.decimals
+  } catch (e) {
+    console.warn('[QuoteAggregator] Could not resolve fromTokenDecimals:', String(e))
+    return undefined
   }
 }
 
@@ -83,6 +112,41 @@ export const QuoteAggregator = {
       failed: [] as string[],
       timedOut: [] as string[],
       errors: {} as Record<string, string>,
+    }
+
+    // Central request validation BEFORE fan-out: reject unsupported chains
+    // (A5 — 'other' family has no executable signing path) and addresses that
+    // don't match the chain's address space (A4). Returning early surfaces an
+    // honest reason instead of silently fanning out → "no routes".
+    const validation = validateQuoteRequest(normalizedRequest)
+    if (!validation.ok) {
+      console.warn(`[QuoteAggregator] Request rejected: ${validation.reason}`)
+      return {
+        quotes: [],
+        bestQuote: null,
+        unsupported: !!validation.unsupported,
+        reason: validation.reason,
+        expiresAt,
+        fetchedAt,
+        providerStats,
+      }
+    }
+
+    // U3: ensure fromTokenDecimals so Rubic (rubic.ts: || 18) can't mis-scale
+    // the input amount. Best-effort, cached; leaves it undefined if unresolved.
+    if (normalizedRequest.fromTokenDecimals === undefined) {
+      const resolved = await resolveFromTokenDecimals(
+        normalizedRequest.fromChain,
+        normalizedRequest.fromToken
+      )
+      if (resolved !== undefined) {
+        normalizedRequest.fromTokenDecimals = resolved
+        console.log(`[QuoteAggregator] Resolved fromTokenDecimals=${resolved}`)
+      } else {
+        console.warn(
+          '[QuoteAggregator] fromTokenDecimals missing and unresolved; providers will use their fallback'
+        )
+      }
     }
 
     console.log('=== QUOTE AGGREGATOR START ===')

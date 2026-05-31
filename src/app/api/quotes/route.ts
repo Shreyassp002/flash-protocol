@@ -32,10 +32,12 @@ export async function POST(request: Request) {
       fromTokenDecimals: params.fromTokenDecimals,
     })
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       routes: result.quotes,
       bestQuote: result.bestQuote,
+      unsupported: result.unsupported ?? false,
+      reason: result.reason,
       expiresAt: result.expiresAt,
       fetchedAt: result.fetchedAt,
       providerStats: result.providerStats,
