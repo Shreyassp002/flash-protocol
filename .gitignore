@@ -50,3 +50,6 @@ next-env.d.ts
 /documentation/
 /inspiration/
 provider-logs/
+
+# Local planning/specs — never commit
+docs/
