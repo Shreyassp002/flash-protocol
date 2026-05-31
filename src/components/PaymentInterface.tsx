@@ -333,8 +333,14 @@ export default function PaymentInterface({ link, onSuccess }: PaymentInterfacePr
         setQuotes(data.routes)
         const best = data.bestQuote || data.routes[0]
         setSelectedQuote(best)
+      } else if (data.unsupported && data.reason) {
+        throw new Error(data.reason)
       } else {
-        throw new Error(data.error || 'No routes found for this swap. Try a different token or chain.')
+        throw new Error(
+          data.reason ||
+            data.error ||
+            'No routes found for this swap. Try a different token or chain.'
+        )
       }
     } catch (e) {
       console.error(e)
