@@ -16,7 +16,8 @@ import {
   getSolanaConnection,
   isSolNative,
 } from '@/lib/solana'
-import { PublicKey } from '@solana/web3.js'
+import { resolveExecutionPath } from '@/lib/execution-path'
+import { PublicKey, VersionedTransaction, Transaction } from '@solana/web3.js'
 
 OpenAPI.BASE = 'https://1click.chaindefuser.com'
 
@@ -371,6 +372,73 @@ export function useTransactionExecutor() {
     }
   }, [])
 
+  // Solana execution for atomic swap providers (primarily LI.FI) that return a
+  // base64 serialized (Versioned)Transaction in transactionRequest.data.
+  const executeLifiSolana = useCallback(async (quote: QuoteResponse) => {
+    const solana = (window as any).phantom?.solana || (window as any).solana
+    if (!solana) throw new Error('Solana wallet not connected')
+    if (!solana.signAndSendTransaction) {
+      throw new Error('Connected Solana wallet does not support signAndSendTransaction.')
+    }
+
+    const serialized = quote.transactionRequest?.data as string | undefined
+    if (!serialized) throw new Error('No serialized Solana transaction data in quote')
+
+    setStatus('executing')
+    setStep('Signing Solana Transaction...')
+
+    try {
+      let transaction: VersionedTransaction | Transaction
+      try {
+        transaction = deserializeSolanaTransaction(serialized)
+      } catch {
+        // Fallback: legacy (non-versioned) Solana transaction
+        transaction = Transaction.from(Buffer.from(serialized, 'base64'))
+      }
+
+      const result = await solana.signAndSendTransaction(transaction)
+      const hash = typeof result === 'string' ? result : result?.signature || result?.toString()
+
+      setTxHash(hash)
+      setStep('Confirming Solana Transaction...')
+
+      try {
+        const connection = getSolanaConnection()
+        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
+        await connection.confirmTransaction(
+          { signature: hash, blockhash, lastValidBlockHeight },
+          'confirmed'
+        )
+      } catch (confirmErr) {
+        console.warn('Solana confirmation polling failed (tx may still succeed):', confirmErr)
+      }
+
+      // Deposit-based providers (e.g. NEAR via Solana) need the hash submitted to
+      // the solver; LI.FI is self-contained and needs no extra submission.
+      const depositAddress =
+        quote.metadata?.depositAddress || quote.transactionRequest?.depositAddress
+      if (quote.provider === 'near-intents' && depositAddress) {
+        try {
+          await OneClickService.submitDepositTx({
+            txHash: hash,
+            depositAddress: depositAddress as string,
+            memo: quote.metadata?.depositMemo as string | undefined,
+          })
+        } catch (e) {
+          console.warn('Failed to submit Solana swap hash:', e)
+        }
+      }
+
+      setStatus('completed')
+      return hash
+    } catch (e: any) {
+      console.error('Solana Swap Execution Error:', e)
+      setError(e.message || 'Solana Swap Execution Failed')
+      setStatus('failed')
+      throw e
+    }
+  }, [])
+
   const executeSolanaDeposit = useCallback(async (quote: QuoteResponse) => {
     const solana = (window as any).phantom?.solana || (window as any).solana
     if (!solana || !address) throw new Error('Solana wallet not connected')
@@ -506,11 +574,20 @@ export function useTransactionExecutor() {
         }
       }
 
+      // Non-deposit Solana-source swaps (primarily LI.FI) sign a serialized
+      // Solana transaction. Without this branch they fall through to the EVM
+      // signer below and become unexecutable.
+      if (!isDepositTrade && quote.provider !== 'near-intents' && quote.provider !== 'cctp') {
+        if (resolveExecutionPath(quote) === 'solana') {
+          return await executeLifiSolana(quote)
+        }
+      }
+
       // EVM execution paths
       if (quote.provider === 'lifi') {
         const route = (quote.metadata?.lifiRoute as Route) || quote.routes[0] || quote.transactionRequest
-        return await executeLifi(route) 
-      } 
+        return await executeLifi(route)
+      }
       else if (quote.provider === 'rango') {
         return await executeRango(quote, recipientAddress)
       }
@@ -577,7 +654,7 @@ export function useTransactionExecutor() {
        setStatus('failed')
        throw e
     }
-  }, [executeLifi, executeRango, executeNearIntents, executeSolanaDeposit, executeBitcoinDeposit, walletClient, publicClient])
+  }, [executeLifi, executeRango, executeNearIntents, executeLifiSolana, executeSolanaDeposit, executeBitcoinDeposit, walletClient, publicClient])
 
   return { execute, status, error, txHash, step }
 }
