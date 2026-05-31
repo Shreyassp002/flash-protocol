@@ -54,13 +54,20 @@ export interface QuoteStep {
 }
 
 export interface QuoteResponse {
-  provider: string 
-  id: string 
+  provider: string
+  id: string
   fromAmount: string
   toAmount: string
   toAmountMin: string
-  estimatedGas: string 
-  estimatedDuration: number 
+  estimatedGas: string
+  estimatedDuration: number
+  /** REAL decimals of the destination token. Providers MUST set this from the
+   *  live response (never hardcode). Used to normalize toAmount for fair ranking. */
+  toTokenDecimals?: number
+  /** OPTIONAL refinement — USD price of 1 whole destination token (only some providers expose it). */
+  toTokenPriceUSD?: number
+  /** OPTIONAL — provider-supplied USD value of the output (LiFi/NEAR have it; Rubic/Symbiosis do not). */
+  toAmountUSD?: string
   routes: QuoteStep[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   transactionRequest?: any 
