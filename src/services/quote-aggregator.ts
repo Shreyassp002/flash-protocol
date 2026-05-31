@@ -1,5 +1,6 @@
 import { providers } from './providers'
 import { QuoteRequest, QuoteResponse, ChainId } from '@/types/provider'
+import { rankQuotes } from './ranking'
 
 const PROVIDER_TIMEOUT_MS = 30000
 const QUOTE_VALIDITY_MS = 60000
@@ -23,16 +24,6 @@ function normalizeChainId(id: ChainId): ChainId {
   if (typeof id === 'string' && CHAIN_ID_ALIASES[id]) return CHAIN_ID_ALIASES[id]
   if (typeof id === 'number' && CHAIN_ID_ALIASES[String(id)]) return CHAIN_ID_ALIASES[String(id)]
   return id
-}
-
-// Provider reliability scores
-const PROVIDER_RELIABILITY: Record<string, number> = {
-  'cctp': 98,           
-  'lifi': 95,
-  'rango': 90,
-  'symbiosis': 88,
-  'rubic': 85,
-  'near-intents': 80,
 }
 
 export interface AggregatedQuoteResponse {
@@ -73,45 +64,6 @@ async function withTimeout<T>(
     clearTimeout(timeoutId!)
     return { result: null, timedOut: false, error: String(error) }
   }
-}
-
-/**
- * Calculate a secondary score for tie-breaking when output amounts are equal.
- * Factors in: total fees (USD), gas cost, speed, and provider reliability.
- * Higher score = better route.
- */
-function calculateTieBreakerScore(quote: QuoteResponse): number {
-  const totalFeeUSD = parseFloat(quote.fees?.totalFeeUSD || '0')
-  const gasCostUSD = parseFloat(quote.estimatedGas || '0')
-  const duration = quote.estimatedDuration || 600
-  const reliability = PROVIDER_RELIABILITY[quote.provider] || 50
-
-  // Fee score: 0-30 points, lower fees = higher score
-  const totalCost = totalFeeUSD + gasCostUSD
-  const feeScore = Math.max(0, 30 * (1 - Math.min(totalCost, 30) / 30))
-
-  // Speed score: 0-10 points, faster = higher score
-  const speedScore = Math.max(0, 10 * (1 - Math.min(duration, 1800) / 1800))
-
-  // Reliability score: 0-10 points
-  const reliabilityScore = (reliability / 100) * 10
-
-  return feeScore + speedScore + reliabilityScore
-}
-
-function rankQuotes(quotes: QuoteResponse[]): QuoteResponse[] {
-  return quotes.sort((a, b) => {
-    const amountA = BigInt(a.toAmount || '0')
-    const amountB = BigInt(b.toAmount || '0')
-
-    // Primary: Output amount (higher = better)
-    if (amountA !== amountB) {
-      return amountA > amountB ? -1 : 1
-    }
-
-    // Equal output: use fee-aware tie-breaker score (higher = better)
-    return calculateTieBreakerScore(b) - calculateTieBreakerScore(a)
-  })
 }
 
 export const QuoteAggregator = {
