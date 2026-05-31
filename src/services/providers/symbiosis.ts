@@ -34,12 +34,14 @@ export class SymbiosisProvider implements IProvider {
           chainId: fromChainId,
           address: request.fromToken,
           amount: request.fromAmount,
-          decimals: 18 
+          // Real source-token decimals (hardcoding 18 mis-prices 6/8-dec tokens like USDC/WBTC)
+          decimals: request.fromTokenDecimals ?? 18
         },
         tokenOut: {
           chainId: toChainId,
           address: request.toToken,
-          decimals: 18  
+          // Hint only — Symbiosis resolves real decimals from the address; response is authoritative
+          decimals: 18
         },
         from: request.fromAddress,
         to: request.toAddress || request.fromAddress,
@@ -134,6 +136,7 @@ export class SymbiosisProvider implements IProvider {
         fromAmount: request.fromAmount,
         toAmount: data.tokenAmountOut.amount,
         toAmountMin: data.tokenAmountOutMin?.amount || data.tokenAmountOut.amount,
+        toTokenDecimals: data.tokenAmountOut?.decimals,
         estimatedGas: bridgeFeeUSD,
         estimatedDuration: data.estimatedTime || 65,
         transactionRequest: data.tx, 

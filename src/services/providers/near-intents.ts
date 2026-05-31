@@ -284,8 +284,10 @@ export class NearIntentsProvider implements IProvider {
         fromAmount: request.fromAmount,
         toAmount: quote.amountOut,
         toAmountMin: quote.minAmountOut || quote.amountOut,
+        toTokenDecimals: toTokenMeta?.decimals,
+        toAmountUSD: quote.amountOutUsd?.toString(),
         estimatedGas: '0', // NEAR Intents handles gas internally
-        estimatedDuration: quote.timeEstimate || 120, 
+        estimatedDuration: quote.timeEstimate || 120,
         transactionRequest: quote.depositAddress ? { 
           depositAddress: quote.depositAddress,
           memo: quote.depositMemo 

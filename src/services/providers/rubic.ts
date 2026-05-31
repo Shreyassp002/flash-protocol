@@ -242,6 +242,7 @@ export class RubicProvider implements IProvider {
         fromAmount: request.fromAmount,
         toAmount: this.toWei(toAmountHuman, toDecimals),
         toAmountMin: this.toWei(toAmountMinHuman, toDecimals),
+        toTokenDecimals: toDecimals,
         estimatedGas: gasCostUSD,
         estimatedDuration: data.estimate.estimatedTime || 300,
         transactionRequest,

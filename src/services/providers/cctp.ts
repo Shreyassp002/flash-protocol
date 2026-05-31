@@ -125,6 +125,7 @@ export class CCTPProvider implements IProvider {
         fromAmount: request.fromAmount,
         toAmount: outputAmount.toString(),
         toAmountMin: outputAmount.toString(),
+        toTokenDecimals: 6, // CCTP only ever bridges USDC (6 decimals on all supported chains)
         estimatedGas: '0',
         estimatedDuration,
         bridgeFee: feeAmount.toString(),
