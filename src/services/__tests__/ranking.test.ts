@@ -83,6 +83,25 @@ describe('rankQuotes', () => {
     expect(ranked[ranked.length - 1].provider).toBe('symbiosis')
   })
 
+  it('A1 (majority-mislabel): when MOST providers mislabel decimals, the authoritative refDecimals still wins', () => {
+    // Real dest token is 6-dec USDC. Two providers mislabel as 18, one correct at 6.
+    // Majority-vote consensus would pick 18 and demote the correct quote — the bug.
+    const correct = q({ provider: 'lifi', toAmount: '10000000', toTokenDecimals: 6 }) // 10.0 USDC
+    const wrong1 = q({ provider: 'symbiosis', toAmount: '9000000000000000000', toTokenDecimals: 18 }) // claims 18 → 9.0
+    const wrong2 = q({ provider: 'rubic', toAmount: '9500000000000000000', toTokenDecimals: 18 }) // claims 18 → 9.5
+    // refDecimals=6 is the authoritative destination-token decimals from the request.
+    const ranked = rankQuotes([wrong1, wrong2, correct], 6)
+    expect(ranked[0].provider).toBe('lifi') // correct 6-dec quote wins despite being the minority
+  })
+
+  it('refDecimals: quotes matching the authoritative decimals are trusted; mismatches demoted', () => {
+    const good = q({ provider: 'lifi', toAmount: '10000000', toTokenDecimals: 6 })
+    const bad = q({ provider: 'symbiosis', toAmount: '99999999999999999999', toTokenDecimals: 18 })
+    const ranked = rankQuotes([bad, good], 6)
+    expect(ranked[0].provider).toBe('lifi')
+    expect(ranked[ranked.length - 1].provider).toBe('symbiosis')
+  })
+
   it('A2 (fees): a lower-gross quote with no on-top fee beats a higher-gross quote with a large on-top fee', () => {
     const grossHighFee = q({
       provider: 'rubic',

@@ -15,8 +15,11 @@ export interface QuoteRequest {
   fromAmount: string 
   fromAddress: string 
   toAddress?: string  
-  slippage?: number 
+  slippage?: number
   fromTokenDecimals?: number // Required for Rubic
+  /** Authoritative destination-token decimals — used to rank quotes fairly
+   *  (a provider that mislabels the dest token's decimals can't win). */
+  toTokenDecimals?: number
 }
 
 export interface FeeCost {

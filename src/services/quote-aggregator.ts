@@ -138,7 +138,10 @@ export const QuoteAggregator = {
     console.log('Total Quotes:', allQuotes.length)
 
     // Rank quotes with tie-breakers
-    const rankedQuotes = rankQuotes(allQuotes)
+    // Pass the authoritative destination-token decimals so a provider that
+    // mislabels them (e.g. reports 6-dec USDC as 18) can't win the ranking,
+    // even if it's the majority. Falls back to consensus when not supplied.
+    const rankedQuotes = rankQuotes(allQuotes, request.toTokenDecimals)
 
     return {
       quotes: rankedQuotes,

@@ -93,19 +93,27 @@ export function tieBreakerScore(quote: QuoteResponse): number {
 }
 
 /**
- * Rank quotes best-first. Quotes whose declared decimals match the consensus are
- * "trusted" and always rank above "untrusted" (mismatched-decimals) quotes,
- * regardless of raw amount — a mislabeled quote can never win. Within each group,
- * sort by net output desc, breaking near-ties with the tie-breaker score.
+ * Rank quotes best-first.
+ *
+ * Decimals are a FACT about the (shared) destination token, not a vote. When the
+ * caller knows the authoritative destination-token decimals (the aggregator does —
+ * every quote in a request targets the same token), pass `refDecimals`: any quote
+ * whose declared decimals disagree is "untrusted" and ranks below all trusted
+ * quotes, regardless of raw amount. This holds even when the MAJORITY of providers
+ * mislabel the token (majority-vote consensus would fail there).
+ *
+ * When `refDecimals` is omitted (e.g. offline tests with no known reference),
+ * fall back to the most-common declared decimals as a best-effort consensus.
  */
-export function rankQuotes(quotes: QuoteResponse[]): QuoteResponse[] {
+export function rankQuotes(quotes: QuoteResponse[], refDecimals?: number): QuoteResponse[] {
   if (quotes.length <= 1) return [...quotes]
-  const consensus = consensusDecimals(quotes)
+  // Authoritative reference wins; otherwise best-effort majority consensus.
+  const reference = typeof refDecimals === 'number' ? refDecimals : consensusDecimals(quotes)
 
   const decimalsFor = (q: QuoteResponse) => declaredDecimals(q)
-  const isTrusted = (q: QuoteResponse) => consensus === undefined || decimalsFor(q) === consensus
-  // Trusted quotes normalize by the consensus; untrusted by their own (best effort).
-  const netFor = (q: QuoteResponse) => netOutput(q, isTrusted(q) ? (consensus as number) : decimalsFor(q))
+  const isTrusted = (q: QuoteResponse) => reference === undefined || decimalsFor(q) === reference
+  // Trusted quotes normalize by the reference; untrusted by their own (best effort).
+  const netFor = (q: QuoteResponse) => netOutput(q, isTrusted(q) ? (reference as number) : decimalsFor(q))
 
   return [...quotes].sort((a, b) => {
     const ta = isTrusted(a)

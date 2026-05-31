@@ -11,6 +11,7 @@ const quoteSchema = z.object({
   fromAddress: z.string().optional(),
   toAddress: z.string().optional(),
   fromTokenDecimals: z.number().optional(),
+  toTokenDecimals: z.number().optional(),
 })
 
 export async function POST(request: Request) {
