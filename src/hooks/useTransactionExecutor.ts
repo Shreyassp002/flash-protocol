@@ -159,11 +159,12 @@ export function useTransactionExecutor() {
       setTxHash(hash)
       setStep('Submitting Transaction Hash...')
 
-      // 3. Submit Hash to Solver Network
+      // 3. Submit Hash to Solver Network (include memo for memo-required chains)
       try {
         await OneClickService.submitDepositTx({
             txHash: hash,
-            depositAddress
+            depositAddress,
+            memo: quote.metadata?.depositMemo,
         })
       } catch (e) {
         console.warn('Failed to submit tx hash to Near Intents:', e)
@@ -409,7 +410,7 @@ export function useTransactionExecutor() {
 
       if (quote.provider === 'near-intents' && depositAddress) {
         try {
-          await OneClickService.submitDepositTx({ txHash, depositAddress })
+          await OneClickService.submitDepositTx({ txHash, depositAddress, memo: quote.metadata?.depositMemo })
         } catch (e) {
           console.warn('Failed to submit Solana deposit hash:', e)
         }
@@ -459,7 +460,7 @@ export function useTransactionExecutor() {
 
       if (quote.provider === 'near-intents' && depositAddress) {
         try {
-          await OneClickService.submitDepositTx({ txHash, depositAddress })
+          await OneClickService.submitDepositTx({ txHash, depositAddress, memo: quote.metadata?.depositMemo })
         } catch (e) {
           console.warn('Failed to submit BTC deposit hash:', e)
         }
@@ -491,6 +492,17 @@ export function useTransactionExecutor() {
         }
         if (chainType === 'bitcoin') {
           return await executeBitcoinDeposit(quote)
+        }
+        // Fund-safety: never let a non-EVM/non-Solana/non-Bitcoin deposit
+        // (XRP/TON/Stellar/Tron/Sui — often memo/tag-required) fall through to
+        // the EVM signer below. We have no working signing path for these, and
+        // misrouting would send funds to a wrong-format address / without the
+        // required memo → unrecoverable loss.
+        if (chainType === 'other') {
+          throw new Error(
+            'Paying from this source chain is not supported yet. ' +
+              'Please choose an EVM, Solana, or Bitcoin source token.',
+          )
         }
       }
 
