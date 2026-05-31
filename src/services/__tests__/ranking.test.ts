@@ -35,6 +35,29 @@ describe('netOutput', () => {
     expect(netOutput(q({ provider: 'a', toAmount: '10000000', toTokenDecimals: 6 }), 6)).toBeCloseTo(10, 6)
   })
 
+  it('converts on-top USD fee to destination-token units when toTokenPriceUSD is known', () => {
+    // Dest token worth $2000 (e.g. WETH). 1.0 token out, $20 on-top fee = 0.01 token.
+    const quote = q({
+      provider: 'a',
+      toAmount: '1000000000000000000', // 1.0 at 18 dec
+      toTokenDecimals: 18,
+      toTokenPriceUSD: 2000,
+      routes: [
+        {
+          type: 'swap', tool: 't',
+          action: {
+            fromToken: { address: '0x', chainId: 1, symbol: 'X', decimals: 18 },
+            toToken: { address: '0x', chainId: 1, symbol: 'WETH', decimals: 18 },
+            fromAmount: '0', toAmount: '1000000000000000000',
+          },
+          estimate: { feeCosts: [{ type: 'GAS', name: 'gas', amount: '0', amountUSD: '20', included: false }] },
+        },
+      ],
+    })
+    // 1.0 WETH - ($20 / $2000) = 1.0 - 0.01 = 0.99 (NOT 1.0 - 20 = -19)
+    expect(netOutput(quote, 18)).toBeCloseTo(0.99, 6)
+  })
+
   it('subtracts on-top (included:false) fee costs in USD', () => {
     const quote = q({
       provider: 'a',
