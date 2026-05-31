@@ -11,7 +11,12 @@ import { ChainTokenService } from '@/services/chain-token-service'
  * The token is 6-decimal USDC; decimals:18 is the echoed request hint, NOT real.
  */
 
-type FetchResponse = { ok: boolean; status?: number; json: () => Promise<unknown>; text: () => Promise<string> }
+type FetchResponse = {
+  ok: boolean
+  status?: number
+  json: () => Promise<unknown>
+  text: () => Promise<string>
+}
 
 function mockResponse(body: unknown, ok = true, status = 200): FetchResponse {
   return {
@@ -29,7 +34,12 @@ beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock)
   // Default: registry resolves USDC-Base to 6 decimals.
   vi.spyOn(ChainTokenService, 'getTokens').mockResolvedValue([
-    { address: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913', chainId: 8453, symbol: 'USDC', decimals: 6 },
+    {
+      address: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
+      chainId: 8453,
+      symbol: 'USDC',
+      decimals: 6,
+    },
   ] as never)
 })
 
@@ -39,7 +49,13 @@ afterEach(() => {
 
 const REAL_SWAP = {
   id: 'sym-real-1',
-  tokenAmountIn: { symbol: 'USDC', address: '0xaf88', amount: '10000000', chainId: 42161, decimals: 6 },
+  tokenAmountIn: {
+    symbol: 'USDC',
+    address: '0xaf88',
+    amount: '10000000',
+    chainId: 42161,
+    decimals: 6,
+  },
   tokenAmountOut: {
     symbol: 'tokenOut',
     address: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
@@ -49,7 +65,14 @@ const REAL_SWAP = {
     priceUsd: 0.999576,
   },
   priceImpact: 0.28,
-  fee: { symbol: 'USDbC', address: '0xd9aAEc86', amount: '250000', chainId: 8453, decimals: 6, priceUsd: 0.9996597 },
+  fee: {
+    symbol: 'USDbC',
+    address: '0xd9aAEc86',
+    amount: '250000',
+    chainId: 8453,
+    decimals: 6,
+    priceUsd: 0.9996597,
+  },
   estimatedTime: 15,
   tx: { to: '0xrouter', data: '0xdead', value: '0', chainId: 8453 },
 }
@@ -67,7 +90,9 @@ const ARB_TO_BASE = {
 describe('computeSymbiosisFeeUSD', () => {
   it('computes real USD fee from {amount, decimals, priceUsd}', () => {
     // 250000 / 10^6 * 0.9996597 = 0.2499...  -> "0.25"
-    expect(computeSymbiosisFeeUSD({ amount: '250000', decimals: 6, priceUsd: 0.9996597 })).toBe('0.25')
+    expect(computeSymbiosisFeeUSD({ amount: '250000', decimals: 6, priceUsd: 0.9996597 })).toBe(
+      '0.25',
+    )
   })
   it('defaults priceUsd to 1 when missing', () => {
     expect(computeSymbiosisFeeUSD({ amount: '250000', decimals: 6 })).toBe('0.25')

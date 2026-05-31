@@ -1,4 +1,11 @@
-import { IProvider, QuoteRequest, QuoteResponse, StatusRequest, StatusResponse, TransactionStatus } from '@/types/provider'
+import {
+  IProvider,
+  QuoteRequest,
+  QuoteResponse,
+  StatusRequest,
+  StatusResponse,
+  TransactionStatus,
+} from '@/types/provider'
 import { SYMBIOSIS_GATEWAY_MAP, SYMBIOSIS_CHAIN_IDS } from './symbiosis-config'
 import { SYMBIOSIS_CONFIG } from './symbiosis-data'
 import { ChainTokenService } from '../chain-token-service'
@@ -12,7 +19,7 @@ import { ChainTokenService } from '../chain-token-service'
 export async function resolveToTokenDecimals(
   request: QuoteRequest,
   toChain: number,
-  apiDecimals: number | undefined
+  apiDecimals: number | undefined,
 ): Promise<number | undefined> {
   if (typeof request.toTokenDecimals === 'number') return request.toTokenDecimals
   try {
@@ -42,7 +49,9 @@ export function computeSymbiosisFeeUSD(fee: unknown): string | undefined {
 
 const SYMBIOSIS_API_BASE = 'https://api.symbiosis.finance/crosschain/v1'
 const SYMBIOSIS_BTC_CHAIN_ID = 3652501241
-const SYMBIOSIS_BTC_FORWARDER_URL = SYMBIOSIS_CONFIG.btcConfigs?.[0]?.forwarderUrl || 'https://btc-forwarder.symbiosis.finance/bsc-v2/forwarder/api/v1'
+const SYMBIOSIS_BTC_FORWARDER_URL =
+  SYMBIOSIS_CONFIG.btcConfigs?.[0]?.forwarderUrl ||
+  'https://btc-forwarder.symbiosis.finance/bsc-v2/forwarder/api/v1'
 
 export class SymbiosisProvider implements IProvider {
   name = 'symbiosis'
@@ -50,15 +59,18 @@ export class SymbiosisProvider implements IProvider {
   async getQuote(request: QuoteRequest): Promise<QuoteResponse[]> {
     try {
       const resolveChainId = (chain: number | string): number => {
-        if (typeof chain === 'string' && chain.toLowerCase() === 'bitcoin') return SYMBIOSIS_BTC_CHAIN_ID
+        if (typeof chain === 'string' && chain.toLowerCase() === 'bitcoin')
+          return SYMBIOSIS_BTC_CHAIN_ID
         return typeof chain === 'number' ? chain : Number(chain)
       }
       const fromChainId = resolveChainId(request.fromChain)
       const toChainId = resolveChainId(request.toChain)
       if (isNaN(fromChainId) || isNaN(toChainId)) return []
-      
-      const isFromSupported = SYMBIOSIS_CHAIN_IDS.includes(fromChainId) || fromChainId === SYMBIOSIS_BTC_CHAIN_ID
-      const isToSupported = SYMBIOSIS_CHAIN_IDS.includes(toChainId) || toChainId === SYMBIOSIS_BTC_CHAIN_ID
+
+      const isFromSupported =
+        SYMBIOSIS_CHAIN_IDS.includes(fromChainId) || fromChainId === SYMBIOSIS_BTC_CHAIN_ID
+      const isToSupported =
+        SYMBIOSIS_CHAIN_IDS.includes(toChainId) || toChainId === SYMBIOSIS_BTC_CHAIN_ID
 
       if (!isFromSupported || !isToSupported) {
         return []
@@ -73,13 +85,13 @@ export class SymbiosisProvider implements IProvider {
           address: request.fromToken,
           amount: request.fromAmount,
           // Real source-token decimals (hardcoding 18 mis-prices 6/8-dec tokens like USDC/WBTC)
-          decimals: request.fromTokenDecimals ?? 18
+          decimals: request.fromTokenDecimals ?? 18,
         },
         tokenOut: {
           chainId: toChainId,
           address: request.toToken,
           // Hint only — Symbiosis resolves real decimals from the address; response is authoritative
-          decimals: 18
+          decimals: 18,
         },
         from: request.fromAddress,
         to: request.toAddress || request.fromAddress,
@@ -98,7 +110,7 @@ export class SymbiosisProvider implements IProvider {
       const response = await fetch(`${SYMBIOSIS_API_BASE}/swap`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(swapBody)
+        body: JSON.stringify(swapBody),
       })
 
       if (!response.ok) {
@@ -108,7 +120,7 @@ export class SymbiosisProvider implements IProvider {
       }
 
       const data = await response.json()
-      
+
       console.log('=== SYMBIOSIS RAW RESPONSE ===')
       console.log('id:', data.id)
       console.log('tokenAmountOut:', JSON.stringify(data.tokenAmountOut, null, 2))
@@ -166,13 +178,16 @@ export class SymbiosisProvider implements IProvider {
               calldata: data.tx?.data,
               to: data.tx?.to,
               chainId: data.tx?.chainId || 56,
-            })
+            }),
           })
           if (forwarderRes.ok) {
             const forwarderData = await forwarderRes.json()
             depositAddress = forwarderData.address || forwarderData.depositAddress
           } else {
-            console.warn('Symbiosis Forwarder failed, BTC deposit may not work:', await forwarderRes.text())
+            console.warn(
+              'Symbiosis Forwarder failed, BTC deposit may not work:',
+              await forwarderRes.text(),
+            )
           }
         } catch (e) {
           console.warn('Symbiosis Forwarder API call failed:', e)
@@ -186,65 +201,75 @@ export class SymbiosisProvider implements IProvider {
         }
       }
 
-      return [{
-        provider: 'symbiosis',
-        id: data.id || Math.random().toString(36).substring(7),
-        fromAmount: request.fromAmount,
-        toAmount: data.tokenAmountOut.amount,
-        toAmountMin: data.tokenAmountOutMin?.amount || data.tokenAmountOut.amount,
-        toTokenDecimals: resolvedToDecimals,
-        estimatedGas: gasUSD,
-        estimatedDuration: data.estimatedTime || 65,
-        transactionRequest: data.tx, 
-        metadata: {
-          chainType,
-          isDepositTrade,
-          ...(depositAddress ? { depositAddress } : {}),
-          ...(amountToSend ? { amountToSend } : {}),
-        },
-        fees: {
-          totalFeeUSD: bridgeFeeUSD,
-          bridgeFee: bridgeFeeUSD,
-          slippage: priceImpact,
-        },
-        toolsUsed: ['Symbiosis'],
-        routes: [{
-          type: 'bridge' as const,
-          tool: 'symbiosis',
-          toolName: 'Symbiosis Bridge',
-          action: {
-            fromToken: {
-              address: request.fromToken,
-              chainId: request.fromChain,
-              symbol: data.tokenAmountIn?.symbol || 'UNKNOWN',
-              decimals: data.tokenAmountIn?.decimals || 18
-            },
-            toToken: {
-              address: request.toToken,
-              chainId: request.toChain,
-              symbol: (data.tokenAmountOut?.symbol && data.tokenAmountOut.symbol !== 'tokenOut') ? data.tokenAmountOut.symbol : 'UNKNOWN',
-              decimals: resolvedToDecimals
-            },
-            fromAmount: request.fromAmount,
-            toAmount: data.tokenAmountOut.amount
+      return [
+        {
+          provider: 'symbiosis',
+          id: data.id || Math.random().toString(36).substring(7),
+          fromAmount: request.fromAmount,
+          toAmount: data.tokenAmountOut.amount,
+          toAmountMin: data.tokenAmountOutMin?.amount || data.tokenAmountOut.amount,
+          toTokenDecimals: resolvedToDecimals,
+          estimatedGas: gasUSD,
+          estimatedDuration: data.estimatedTime || 65,
+          transactionRequest: data.tx,
+          metadata: {
+            chainType,
+            isDepositTrade,
+            ...(depositAddress ? { depositAddress } : {}),
+            ...(amountToSend ? { amountToSend } : {}),
           },
-          estimate: {
-            executionDuration: data.estimatedTime,
-            approvalAddress: approvalAddress,
-            feeCosts: [
-              ...(parseFloat(bridgeFeeUSD) > 0 ? [{
-                type: 'BRIDGE' as const,
-                name: 'Bridge Fee',
-                description: 'Symbiosis Protocol Fee',
-                amount: bridgeFeeUSD,
-                amountUSD: bridgeFeeUSD,
-                included: true
-              }] : [])
-            ]
-          }
-        }]
-      }]
-
+          fees: {
+            totalFeeUSD: bridgeFeeUSD,
+            bridgeFee: bridgeFeeUSD,
+            slippage: priceImpact,
+          },
+          toolsUsed: ['Symbiosis'],
+          routes: [
+            {
+              type: 'bridge' as const,
+              tool: 'symbiosis',
+              toolName: 'Symbiosis Bridge',
+              action: {
+                fromToken: {
+                  address: request.fromToken,
+                  chainId: request.fromChain,
+                  symbol: data.tokenAmountIn?.symbol || 'UNKNOWN',
+                  decimals: data.tokenAmountIn?.decimals || 18,
+                },
+                toToken: {
+                  address: request.toToken,
+                  chainId: request.toChain,
+                  symbol:
+                    data.tokenAmountOut?.symbol && data.tokenAmountOut.symbol !== 'tokenOut'
+                      ? data.tokenAmountOut.symbol
+                      : 'UNKNOWN',
+                  decimals: resolvedToDecimals,
+                },
+                fromAmount: request.fromAmount,
+                toAmount: data.tokenAmountOut.amount,
+              },
+              estimate: {
+                executionDuration: data.estimatedTime,
+                approvalAddress: approvalAddress,
+                feeCosts: [
+                  ...(parseFloat(bridgeFeeUSD) > 0
+                    ? [
+                        {
+                          type: 'BRIDGE' as const,
+                          name: 'Bridge Fee',
+                          description: 'Symbiosis Protocol Fee',
+                          amount: bridgeFeeUSD,
+                          amountUSD: bridgeFeeUSD,
+                          included: true,
+                        },
+                      ]
+                    : []),
+                ],
+              },
+            },
+          ],
+        },
+      ]
     } catch (error) {
       console.error('Symbiosis Quote Error:', error)
       return []
@@ -253,12 +278,14 @@ export class SymbiosisProvider implements IProvider {
 
   async getStatus(request: StatusRequest): Promise<StatusResponse> {
     try {
-      const response = await fetch(`${SYMBIOSIS_API_BASE}/tx/${request.fromChainId}/${request.txHash}`)
-      
+      const response = await fetch(
+        `${SYMBIOSIS_API_BASE}/tx/${request.fromChainId}/${request.txHash}`,
+      )
+
       if (!response.ok) return { status: 'NOT_FOUND' }
 
       const data = await response.json()
-      
+
       let finalStatus: TransactionStatus = 'PENDING'
       if (data.status === 'success' || data.status === 'completed') finalStatus = 'DONE'
       else if (data.status === 'failed' || data.status === 'reverted') finalStatus = 'FAILED'
@@ -266,7 +293,7 @@ export class SymbiosisProvider implements IProvider {
       return {
         status: finalStatus,
         subStatus: data.status,
-        txLink: data.explorerUrl
+        txLink: data.explorerUrl,
       }
     } catch (error) {
       console.error('Symbiosis Status Error:', error)
