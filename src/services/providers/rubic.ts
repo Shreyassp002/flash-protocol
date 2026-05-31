@@ -192,7 +192,10 @@ export class RubicProvider implements IProvider {
               if (swapData.transaction?.depositAddress) {
                 transactionRequest = {
                   depositAddress: swapData.transaction.depositAddress,
-                  amountToSend: swapData.transaction.amountToSend || request.fromAmount,
+                  // Rubic returns amountToSend in HUMAN units; the executor does
+                  // BigInt(amountToSend) expecting RAW base units. The deposit
+                  // amount equals the source amount the user pays = request.fromAmount.
+                  amountToSend: request.fromAmount,
                   exchangeId: swapData.transaction.exchangeId,
                   type: chainType,
                 }
