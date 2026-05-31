@@ -15,19 +15,19 @@ describe('isValidAddressForChain', () => {
 
   it('accepts a valid Solana (base58) address on solana', () => {
     expect(isValidAddressForChain('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', 'solana')).toBe(
-      true
+      true,
     )
   })
 
   it('rejects an EVM 0x address on solana', () => {
     expect(isValidAddressForChain('0x1111111111111111111111111111111111111111', 'solana')).toBe(
-      false
+      false,
     )
   })
 
   it('accepts valid Bitcoin addresses (bech32 and legacy) on bitcoin', () => {
     expect(isValidAddressForChain('bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', 'bitcoin')).toBe(
-      true
+      true,
     )
     expect(isValidAddressForChain('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', 'bitcoin')).toBe(true)
     expect(isValidAddressForChain('3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy', 'bitcoin')).toBe(true)
@@ -35,7 +35,7 @@ describe('isValidAddressForChain', () => {
 
   it('rejects an EVM 0x address on bitcoin', () => {
     expect(isValidAddressForChain('0x1111111111111111111111111111111111111111', 'bitcoin')).toBe(
-      false
+      false,
     )
   })
 
@@ -59,7 +59,7 @@ describe('validateQuoteRequest', () => {
         toChain: 8453,
         fromAddress: '0x1111111111111111111111111111111111111111',
         toAddress: '0x2222222222222222222222222222222222222222',
-      })
+      }),
     ).toEqual({ ok: true })
   })
 
