@@ -113,6 +113,9 @@ export default function PaymentInterface({ link, onSuccess }: PaymentInterfacePr
 
   // Dynamic USDC address resolution for destination chain
   const [resolvedUSDCAddress, setResolvedUSDCAddress] = useState<string | undefined>(undefined)
+  // Destination-token decimals — sent to the quote API so ranking normalizes each
+  // provider's output against the real dest decimals (USDC = 6).
+  const [resolvedUSDCDecimals, setResolvedUSDCDecimals] = useState<number | undefined>(undefined)
 
   useEffect(() => {
     if (link.receive_token || link.stealth_chain_native) return
@@ -127,6 +130,7 @@ export default function PaymentInterface({ link, onSuccess }: PaymentInterfacePr
           )
           if (usdc?.address) {
             setResolvedUSDCAddress(usdc.address)
+            if (typeof usdc.decimals === 'number') setResolvedUSDCDecimals(usdc.decimals)
             return
           }
         }
@@ -320,6 +324,7 @@ export default function PaymentInterface({ link, onSuccess }: PaymentInterfacePr
           fromAddress: address,
           toAddress: link.recipient_address,
           fromTokenDecimals: fromToken.decimals,
+          toTokenDecimals: resolvedUSDCDecimals,
         }),
       })
 
